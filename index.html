@@ -1080,17 +1080,333 @@
     }
 
     function saveToDisk() { localStorage.setItem('KaracabayRE_EST_DB_v19', JSON.stringify(portfolio)); localStorage.setItem('KaracabayRE_CRM_v19', JSON.stringify(crmData)); localStorage.setItem('KaracabayRE_CHK_v1', JSON.stringify(checklist)); localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(imarLinks)); updateDashboard(); }
-    function downloadData() { const d = { portfolio: portfolio, crm: crmData, checklist: checklist, imarLinks: imarLinks }; const a = document.createElement('a'); a.href = "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(d)); let now = new Date(); let dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0') + "_" + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0'); a.download = "Karacabay_Yedek_" + dateStr + ".json"; document.body.appendChild(a); a.click(); a.remove(); }
+  
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <style>
+        body { transition: opacity ease-in 0.2s; } 
+        body[unresolved] { opacity: 0; display: block; overflow: hidden; position: relative; } 
+    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ozan Games</title>
     
-    function uploadData(input) {
-        const f = input.files[0];
-        if(!f) return;
-        const r = new FileReader();
-        r.onload = e => {
-            let raw = e.target.result;
-            if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
-            if(!raw || raw.trim() === "") { alert("Dosya boş!"); return; }
-            
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="shortcut icon" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- 1. AYDINLIK (Varsayılan Açık Renkler) --- */
+        :root {
+            --bg-body: #fdfdfd; --bg-header: #fdfdfd; --bg-auth: #f5f5f5; --bg-footer: #f5f5f5; --bg-card: #ffffff;
+            --text-main: #1a1a1a; --text-card: #333333; --text-footer: #444444; --border-color: #e0e0e0;
+            --accent: #ff4500; --accent-glow: rgba(255, 69, 0, 0.1); --shadow-card: 0 4px 15px rgba(0,0,0,0.05);
+            --shadow-header: 0 2px 10px rgba(0,0,0,0.03);
+        }
+        /* --- 2. KARANLIK (Tam Koyu Renkler) --- */
+        body.dark-mode {
+            --bg-body: #050505; --bg-header: #000000; --bg-auth: #0a0a0a; --bg-footer: #0a0a0a; --bg-card: #111111;
+            --text-main: #f0f0f0; --text-card: #cccccc; --text-footer: #888888; --border-color: #222222;
+            --shadow-card: 0 4px 20px rgba(0,0,0,0.5); --shadow-header: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background-color: var(--bg-body); color: var(--text-main); margin: 0; overflow-x: hidden; transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease; }
+
+        header { padding: 15px; text-align: center; background: var(--bg-header); border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow-header); position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70px; transition: 0.4s; gap: 15px; }
+        @media (min-width: 768px) { header { flex-direction: row; padding: 30px; gap: 0; } .controls-panel { position: absolute; top: 50%; right: 20px; transform: translateY(-50%); } }
+        .site-logo { max-height: 60px; display: block; }
+        .controls-panel { display: flex; gap: 10px; align-items: center; }
+        .selector-common { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--accent); padding: 6px 10px; border-radius: 6px; cursor: pointer; outline: none; font-size: 0.75rem; font-weight: bold; transition: 0.3s; }
+        .selector-common:hover { box-shadow: 0 0 10px var(--accent-glow); }
+
+        #auth-ui-wrapper { background: var(--bg-auth); border-bottom: 1px solid var(--border-color); padding: 12px 25px; display: flex; justify-content: flex-end; align-items: center; min-height: 50px; transition: 0.4s; }
+        #auth-ui { display: flex; align-items: center; gap: 12px; }
+        .nav-btn { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: 0.3s; display: inline-flex; align-items: center; justify-content: center; height: 36px; box-sizing: border-box; }
+        
+        .content { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        .section-title { color: var(--accent); font-size: 1.4rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 30px; border-left: 4px solid var(--accent); padding-left: 15px; }
+        .video-wrapper { width: 100%; max-width: 800px; margin: 0 auto 50px; border-radius: 15px; overflow: hidden; border: 2px solid var(--accent); box-shadow: 0 0 20px var(--accent-glow); background: #000; }
+        video { width: 100%; display: block; aspect-ratio: 16 / 9; }
+
+        .project-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+        .project-card { background: var(--bg-card); padding: 30px; border-radius: 15px; border: 1px solid var(--border-color); transition: 0.3s; position: relative; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; box-shadow: var(--shadow-card); }
+        .project-card:hover { border-color: var(--accent); transform: translateY(-5px); }
+        .project-card h3 { color: var(--text-main); margin: 0 0 15px 0; font-size: 1.5rem; padding-right: 35px; }
+        .project-card p { flex-grow: 1; margin-bottom: 25px; line-height: 1.5; color: var(--text-card); font-size: 0.95rem; }
+        
+        .fav-btn { position: absolute; top: 25px; right: 20px; background: none; border: none; color: #ccc; font-size: 1.6rem; cursor: pointer; transition: 0.3s; padding: 0; line-height: 1; }
+        .fav-btn.active { color: var(--accent); }
+        .store-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+        .store-btn { flex: 1; padding: 12px; text-align: center; border-radius: 8px; text-decoration: none; color: #fff; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; border: 1px solid transparent; text-transform: uppercase; }
+        .play-btn { background: rgba(61, 220, 132, 0.1); border-color: #3ddc84; color: #3ddc84; }
+        .apple-btn { background: rgba(0, 122, 255, 0.1); border-color: #007aff; color: #007aff; }
+        .web-btn { background: rgba(255, 69, 0, 0.1); border-color: var(--accent); color: var(--accent); }
+        
+        footer { text-align: center; padding: 60px 20px; background: var(--bg-footer); margin-top: 50px; border-top: 1px solid var(--border-color); transition: 0.4s; }
+        .support-btn { display: inline-block; padding: 14px 30px; background: var(--accent); color: #fff; text-decoration: none; border-radius: 50px; font-weight: bold; margin-bottom: 30px; transition: 0.3s; font-size: 1rem; }
+        .yt-icon { color: #ff0000; font-size: 2.5rem; vertical-align: middle; }
+        .inst-logo { width: 40px; border-radius: 10px; vertical-align: middle; }
+        .github-icon { color: var(--text-main); font-size: 2.5rem; vertical-align: middle; }
+        .ozan-toast { position: fixed; bottom: 35px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 14px 35px; border-radius: 50px; font-weight: bold; z-index: 10000; display: none; }
+        .policy-btn-wrapper { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 25px; }
+        .policy-btn { color: var(--accent); text-decoration: none; font-weight: bold; font-size: 0.85rem; border: 1px solid var(--border-color); padding: 8px 18px; border-radius: 50px; transition: 0.3s; background: var(--bg-card); }
+
+        /* --- CHATBOT UI --- */
+        #ai-chat-wrapper { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
+        #ai-chat-btn { width: 60px; height: 60px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.8rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.3s; }
+        #ai-chat-window { width: 320px; height: 450px; background: var(--bg-card); border: 1px solid var(--accent); border-radius: 15px; display: none; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-card); position: absolute; bottom: 75px; right: 0; }
+        #ai-chat-header { background: var(--accent); color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        #ai-chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 0.9rem; }
+        .msg { padding: 8px 12px; border-radius: 10px; max-width: 85%; line-height: 1.4; word-wrap: break-word; }
+        .msg.bot { background: var(--bg-auth); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; }
+        .msg.user { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        #ai-chat-input-area { padding: 10px; border-top: 1px solid var(--border-color); display: flex; gap: 5px; }
+        #ai-chat-input { flex: 1; border: 1px solid var(--border-color); border-radius: 5px; padding: 8px; background: var(--bg-body); color: var(--text-main); outline: none; }
+        #ai-send-btn { background: var(--accent); color: white; border: none; padding: 5px 12px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body unresolved>
+
+<div id="site-notification" class="ozan-toast"></div>
+
+<div id="ai-chat-wrapper">
+    <div id="ai-chat-window">
+        <div id="ai-chat-header">
+            <span id="chat-title">Ozan Games AI</span>
+            <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="toggleChat()"></i>
+        </div>
+        <div id="ai-chat-messages"></div>
+        <div id="ai-chat-input-area">
+            <input type="text" id="ai-chat-input" placeholder="...">
+            <button id="ai-send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+    <div id="ai-chat-btn" onclick="toggleChat()">
+        <i class="fa-solid fa-robot"></i>
+    </div>
+</div>
+
+<div id="auth-ui-wrapper">
+    <div id="auth-ui">
+        <div id="logged-out-ui" style="display: flex;">
+            <button class="nav-btn" onclick="window.location.href='login.html'" id="login-btn-text"></button>
+            <button class="nav-btn" onclick="window.location.href='login.html'" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); margin-left: 5px;" id="signup-btn-text"></button>
+        </div>
+        <div id="user-info" style="display: none; align-items: center; gap: 12px;">
+            <img id="profile-pic" src="" style="width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--accent); object-fit: cover;">
+            <span id="user-name" style="color: white; font-weight: bold; font-size: 0.95rem;"></span>
+            <button class="nav-btn" onclick="window.logoutUser()" style="background: #e74c3c; height: 30px; padding: 0 12px;" id="logout-btn-text"></button>
+            <button class="nav-btn" onclick="window.deleteMyAccount()" style="background: transparent; border: 1px solid #ff4444; color: #ff4444; height: 30px; padding: 0 10px; font-size: 10px;" id="delete-btn-text"></button>
+        </div>
+    </div>
+</div>
+
+<header>
+    <img src="logo.png" alt="Ozan Games" class="site-logo">
+    <div class="controls-panel">
+        <select class="selector-common" id="theme-select" onchange="window.changeAppTheme(this.value)"></select>
+        <select class="selector-common" id="lang-select">
+            <option value="tr">TR - Türkçe</option><option value="en">EN - English</option>
+            <option value="de">DE - Deutsch</option><option value="ru">RU - Русский</option>
+            <option value="ja">JA - 日本語</option><option value="ko">KO - 한국어</option>
+            <option value="fr">FR - Français</option><option value="pt">PT - Português</option>
+        </select>
+    </div>
+</header>
+
+<div class="content">
+    <h2 class="section-title" id="video-title">EN SON VİDEO</h2>
+    <div class="video-wrapper">
+        <video controls preload="metadata">
+            <source src="video.mp4#t=0.001" type="video/mp4">
+            <span id="browser-err"></span>
+        </video>
+    </div>
+    <h2 class="section-title" id="main-title">TÜM OYUNLAR</h2>
+    <div class="project-grid" id="games-container"></div>
+</div>
+
+<footer>
+    <a href="mailto:support@ozangames.com" class="support-btn">support@ozangames.com</a>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 20px;">
+        <a href="https://www.youtube.com/@OzanGamesOfficial" target="_blank" class="yt-icon"><i class="fa-brands fa-youtube"></i></a>
+        <a href="https://www.instagram.com/ozangamesofficial" target="_blank"><img src="inst.png" class="inst-logo"></a>
+        <a href="https://github.com/OzanGames" target="_blank" class="github-icon"><i class="fa-brands fa-github"></i></a>
+    </div>
+    <div class="policy-btn-wrapper">
+        <a href="privacy.html" id="privacy-btn" class="policy-btn"></a>
+        <a href="terms.html" id="terms-btn" class="policy-btn"></a>
+    </div>
+    <p style="color: var(--text-footer); margin-top: 30px; font-size: 0.85rem;">© 2026 Ozan Games</p>
+</footer>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy, doc, getDoc, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+    import { getAuth, signOut, deleteUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyD0QWa9tesFWS2q4VaMC8uHB_4QRRhOi64",
+        authDomain: "ozan-games-web.firebaseapp.com",
+        projectId: "ozan-games-web",
+        storageBucket: "ozan-games-web.firebasestorage.app",
+        messagingSenderId: "60131028915",
+        appId: "1:60131028915:web:1fefbf4c5d7f8810f9a5c6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let userFavorites = [];
+    let currentAuthUser = null;
+    let globalGames = [];
+
+    const themeTranslations = {
+        tr: { light: "Aydınlık", dark: "Karanlık", auto: "Otomatik" },
+        en: { light: "Light", dark: "Dark", auto: "Auto" },
+        de: { light: "Hell", dark: "Dunkel", auto: "Auto" },
+        ru: { light: "Светлая", dark: "Темная", auto: "Авто" },
+        ja: { light: "ライト", dark: "ダーク", auto: "自動" },
+        ko: { light: "라이트", dark: "다크", auto: "자동" },
+        fr: { light: "Clair", dark: "Sombre", auto: "Auto" },
+        pt: { light: "Claro", dark: "Escuro", auto: "Auto" }
+    };
+
+    const translations = {
+        tr: { mainTitle: "TÜM OYUNLAR", videoTitle: "EN SON VİDEO", loginBtn: "Giriş Yap", signupBtn: "Kayıt Ol", logoutBtn: "Çıkış Yap", deleteBtn: "Hesabı Sil", policy: "Gizlilik Politikası", terms: "Kullanım Şartları", bErr: "Desteklenmiyor.", playStore: "Google Play", appStore: "App Store", chatTitle: "Ozan Games AI", chatWelcome: "Merhaba! Ben Ozan Games AI. Size nasıl yardımcı olabilirim?", chatPlace: "Mesajınızı yazın..." },
+        en: { mainTitle: "ALL GAMES", videoTitle: "LATEST VIDEO", loginBtn: "Login", signupBtn: "Sign Up", logoutBtn: "Logout", deleteBtn: "Delete Account", policy: "Privacy Policy", terms: "Terms of Service", bErr: "Not supported.", playStore: "Google Play", appStore: "App Store", chatTitle: "Ozan Games AI", chatWelcome: "Hello! I am Ozan Games AI. How can I help you?", chatPlace: "Type a message..." },
+        de: { mainTitle: "ALLE SPIELE", videoTitle: "NEUESTES VIDEO", loginBtn: "Anmelden", signupBtn: "Registrieren", logoutBtn: "Abmelden", deleteBtn: "Löschen", policy: "Datenschutz", terms: "Bedingungen", bErr: "Nicht unterstützt.", playStore: "Play Store", appStore: "App Store", chatTitle: "Ozan Games AI", chatWelcome: "Hallo! Ich bin Ozan Games AI.", chatPlace: "Nachricht..." },
+        ru: { mainTitle: "ВСЕ ИГРЫ", videoTitle: "ПОСЛЕДНЕЕ ВИДЕО", loginBtn: "Войти", signupBtn: "Регистрация", logoutBtn: "Выйти", deleteBtn: "Удалить", policy: "Политика", terms: "Условия", bErr: "Не поддерживается.", playStore: "Play Маркет", appStore: "App Store", chatTitle: "Ozan Games AI", chatWelcome: "Привет! Я Ozan Games AI.", chatPlace: "Сообщение..." },
+        ja: { mainTitle: "すべてのゲーム", videoTitle: "最新ビデオ", loginBtn: "ログイン", signupBtn: "サインアップ", logoutBtn: "ログアウト", deleteBtn: "削除", policy: "規約", terms: "条件", bErr: "非対応", playStore: "Google Play", appStore: "App Store", chatTitle: "Ozan Games AI", chatWelcome: "こんにちは！私はOzan Games AIです。", chatPlace: "メッセージを入力..." },
+        ko: { mainTitle: "모든 게임", videoTitle: "최신 비디오", loginBtn: "로그인", signupBtn: "회원가입", logoutBtn: "로그아웃", deleteBtn: "삭제", policy: "방침", terms: "약관", bErr: "비지원", playStore: "Google Play", appStore: "App Store", chatTitle: "Ozan Games AI", chatWelcome: "안녕하세요! 저는 Ozan Games AI입니다.", chatPlace: "메시지 입력..." },
+        fr: { mainTitle: "TOUS LES JEUX", videoTitle: "DERNIÈRE VIDÉO", loginBtn: "Connexion", signupBtn: "S'inscrire", logoutBtn: "Déconnexion", deleteBtn: "Supprimer", policy: "Confidentialité", terms: "Conditions", bErr: "Non supporté", playStore: "Google Play", appStore: "App Store", chatTitle: "Ozan Games AI", chatWelcome: "Bonjour ! Je suis Ozan Games AI.", chatPlace: "Message..." },
+        pt: { mainTitle: "TODOS OS JOGOS", videoTitle: "VİDEO RECENTE", loginBtn: "Entrar", signupBtn: "Cadastrar", logoutBtn: "Sair", deleteBtn: "Excluir", policy: "Privacidade", terms: "Termos", bErr: "Não suportado", playStore: "Google Play", appStore: "App Store", chatTitle: "Ozan Games AI", chatWelcome: "Olá! Eu sou o Ozan Games AI.", chatPlace: "Mensagem..." }
+    };
+
+    function populateThemeMenu(lang) {
+        const ts = document.getElementById('theme-select');
+        const ct = themeTranslations[lang] || themeTranslations['en'];
+        ts.innerHTML = `<option value="light">${ct.light}</option><option value="dark">${ct.dark}</option><option value="auto">${ct.auto}</option>`;
+        ts.value = localStorage.getItem('ozanGamesTheme') || 'light';
+    }
+
+    window.changeAppTheme = (t) => {
+        document.body.classList.remove('dark-mode');
+        localStorage.setItem('ozanGamesTheme', t);
+        if(t === 'dark') document.body.classList.add('dark-mode');
+        else if(t === 'auto') { const h = new Date().getHours(); if(h >= 19 || h < 7) document.body.classList.add('dark-mode'); }
+    };
+
+    function renderGames() {
+        const container = document.getElementById('games-container');
+        if(!container) return;
+        const curLang = localStorage.getItem('ozanGamesLang') || 'tr';
+        const t = translations[curLang] || translations['en'];
+        container.innerHTML = globalGames.map(g => {
+            const isFav = userFavorites.includes(g.id);
+            let b = '';
+            if(g.playStore) b += `<a href="${g.playStore}" target="_blank" class="store-btn play-btn"><i class="fa-brands fa-google-play"></i> ${t.playStore}</a>`;
+            if(g.appStore) b += `<a href="${g.appStore}" target="_blank" class="store-btn apple-btn"><i class="fa-brands fa-apple"></i> ${t.appStore}</a>`;
+            if(g.webUrl) b += `<a href="${g.webUrl}" target="_blank" class="store-btn web-btn"><i class="fa-solid fa-globe"></i> Web</a>`;
+            return `<div class="project-card"><button class="fav-btn ${isFav ? 'active' : ''}" onclick="window.toggleFav('${g.id}')">★</button><h3>${g.title || "Game"}</h3><p>${g.description || ""}</p><div class="store-buttons">${b}</div></div>`;
+        }).join('');
+        document.getElementById('main-title').innerText = t.mainTitle;
+        document.getElementById('video-title').innerText = t.videoTitle;
+        document.getElementById('login-btn-text').innerText = t.loginBtn;
+        document.getElementById('signup-btn-text').innerText = t.signupBtn;
+        document.getElementById('logout-btn-text').innerText = t.logoutBtn;
+        document.getElementById('delete-btn-text').innerText = t.deleteBtn;
+        document.getElementById('privacy-btn').innerText = t.policy;
+        document.getElementById('terms-btn').innerText = t.terms;
+        document.getElementById('chat-title').innerText = t.chatTitle;
+        document.getElementById('ai-chat-input').placeholder = t.chatPlace;
+    }
+
+    const currentLang = localStorage.getItem('ozanGamesLang') || 'tr';
+    document.getElementById('lang-select').value = currentLang;
+    populateThemeMenu(currentLang);
+    window.changeAppTheme(localStorage.getItem('ozanGamesTheme') || 'light');
+
+    document.getElementById('lang-select').onchange = (e) => { localStorage.setItem('ozanGamesLang', e.target.value); location.reload(); };
+
+    // --- CHATBOT LOGIC ---
+    const chatMsgs = document.getElementById('ai-chat-messages');
+    const chatInput = document.getElementById('ai-chat-input');
+    const chatWin = document.getElementById('ai-chat-window');
+
+    window.toggleChat = () => {
+        const isVis = chatWin.style.display === 'flex';
+        chatWin.style.display = isVis ? 'none' : 'flex';
+        if (!isVis && chatMsgs.innerHTML === '') addMsg(translations[localStorage.getItem('ozanGamesLang') || 'tr'].chatWelcome, 'bot');
+    };
+
+    function addMsg(text, sender) {
+        const div = document.createElement('div');
+        div.className = `msg ${sender}`;
+        div.innerText = text;
+        chatMsgs.appendChild(div);
+        chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    }
+
+    async function callGemini(prompt) {
+        const API_KEY = "BURAYA_GEMINI_API_KEY_GELECEK";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        const context = `Sen Ozan Games AI asistanısın. Ozan Games portalına yardım ediyorsun. Mevcut oyunlar: ${globalGames.map(g => g.title).join(", ")}. Kullanım şartları: Saygılı olunmalı. Dil: ${localStorage.getItem('ozanGamesLang') || 'tr'}.`;
+        try {
+            const resp = await fetch(url, { method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: context + "\nKullanıcı: " + prompt }] }] }) });
+            const data = await resp.json();
+            return data.candidates[0].content.parts[0].text;
+        } catch (e) { return "Bağlantı hatası."; }
+    }
+
+    document.getElementById('ai-send-btn').onclick = async () => {
+        const val = chatInput.value.trim(); if(!val) return;
+        addMsg(val, 'user'); chatInput.value = '';
+        addMsg("...", 'bot');
+        const resp = await callGemini(val);
+        chatMsgs.lastChild.innerText = resp;
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentAuthUser = user;
+            document.getElementById('logged-out-ui').style.display = 'none';
+            document.getElementById('user-info').style.display = 'flex';
+            document.getElementById('user-name').innerText = user.displayName || user.email.split('@')[0];
+            document.getElementById('profile-pic').src = user.photoURL || "logo.png";
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            userFavorites = userDoc.exists() ? userDoc.data().favorites || [] : [];
+        } else { currentAuthUser = null; document.getElementById('logged-out-ui').style.display = 'flex'; document.getElementById('user-info').style.display = 'none'; }
+        renderGames();
+    });
+
+    onSnapshot(query(collection(db, "games"), orderBy("createdAt", "desc")), (snap) => {
+        globalGames = [];
+        snap.forEach(doc => globalGames.push({ id: doc.id, ...doc.data() }));
+        renderGames();
+    });
+
+    window.logoutUser = () => signOut(auth).then(() => location.reload());
+    window.deleteMyAccount = async () => { if(confirm("Emin misiniz?")) { try { await deleteDoc(doc(db, "users", auth.currentUser.uid)); await deleteUser(auth.currentUser); location.reload(); } catch(e){} } };
+    window.toggleFav = async (id) => {
+        if (!currentAuthUser) { window.location.href = 'login.html'; return; }
+        const ref = doc(db, "users", currentAuthUser.uid);
+        if (userFavorites.includes(id)) { userFavorites = userFavorites.filter(x => x !== id); await updateDoc(ref, { favorites: arrayRemove(id) }); }
+        else { userFavorites.push(id); await updateDoc(ref, { favorites: arrayUnion(id) }); }
+        renderGames();
+    };
+
+    document.body.removeAttribute('unresolved');
+</script>
+</body>
+</html>
+
             let d;
             try {
                 d = JSON.parse(raw);
