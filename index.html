@@ -58,6 +58,10 @@
         .alarm-active { background: linear-gradient(135deg, #c0392b, #e74c3c) !important; animation: pulse-red 1s infinite; }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(192, 57, 43, 0); } 100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); } }
 
+        /* AJANDA ACİLİYET ANİMASYONU */
+        @keyframes pulse-urgent-anim { 0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.7); transform: scale(1); } 50% { box-shadow: 0 0 0 10px rgba(192, 57, 43, 0); transform: scale(1.02); } 100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); transform: scale(1); } }
+        .pulse-urgent { animation: pulse-urgent-anim 1.5s infinite; border: 1px solid #fff; }
+
         /* --- DASHBOARD & İSTATİSTİK ÇUBUKLARI --- */
         .dashboard-stats { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
         .stat-card { flex: 1; min-width: 100px; background: #f8f9fa; padding: 10px; border-radius: 6px; border-left: 5px solid #ccc; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
@@ -285,8 +289,9 @@
                 <i class="fa-solid fa-building-circle-check"></i> FİZİBİLİTE
             </a>
             
-            <a href="takvim.html" target="_blank" class="tool-btn" style="background-color: #c0392b; color: white; text-decoration: none; align-items: center; display: flex;">
+            <a href="takvim.html" target="_blank" class="tool-btn" id="btnAjanda" style="background-color: #c0392b; color: white; text-decoration: none; align-items: center; display: flex;" title="Ajanda / Takvim">
                 <i class="fa-regular fa-calendar-check"></i> AJANDA
+                <span id="ajandaBadge" class="notification-badge">0</span>
             </a>
             
             <a href="https://parselsorgu.tkgm.gov.tr/" target="_blank" class="tool-btn btn-link"><i class="fa-solid fa-map-location-dot"></i> TKGM</a>
@@ -796,6 +801,8 @@
         renderDetailedStats();
         checkExpiryDates();
         applyProfileSignature();
+        checkAgendaStatus(); // Uygulama açılınca ajandayı kontrol et
+        setInterval(checkAgendaStatus, 60000); // Her dakika kontrolü yenile
     }
 
     window.onload = async function() {
@@ -917,6 +924,77 @@
     }
     
     let editingId = null; let crmEditingId = null;
+
+    // --- YENİ EKLENEN: AKILLI AJANDA KONTROLCÜSÜ ---
+    function checkAgendaStatus() {
+        try {
+            const ajandaData = localStorage.getItem('epa_calendar_events');
+            if (!ajandaData) return;
+            const agEvents = JSON.parse(ajandaData);
+            
+            const todayStr = new Date().toDateString();
+            const nowTime = new Date().getTime();
+            const oneHourLater = nowTime + (60 * 60 * 1000);
+
+            // Bugünün bitmemiş görevlerini filtrele
+            let todaysPending = agEvents.filter(e => {
+                if (e.isCompleted) return false;
+                const evDate = new Date(e.datetime);
+                return evDate.toDateString() === todayStr;
+            });
+
+            const count = todaysPending.length;
+            const badge = document.getElementById('ajandaBadge');
+            const btn = document.getElementById('btnAjanda');
+
+            if (count > 0) {
+                badge.innerText = count;
+                badge.style.display = 'block';
+                
+                // Yaklaşan sırasına göre diz
+                todaysPending.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+                
+                let urgent = false;
+                let nextEvent = null;
+
+                for (let e of todaysPending) {
+                    let evTime = new Date(e.datetime).getTime();
+                    // Zamanı gelmiş veya son 1 saat içindeyse (pulse efekti için)
+                    if (evTime <= oneHourLater && evTime >= nowTime - (24 * 60 * 60 * 1000)) {
+                        urgent = true;
+                    }
+                    if (evTime >= nowTime && !nextEvent) {
+                        nextEvent = e;
+                    }
+                }
+                
+                // Eğer hepsi geçmişte kalmış ama tamamlanmamışsa en eskisini/ilkini göster
+                if (!nextEvent && todaysPending.length > 0) {
+                    nextEvent = todaysPending[0];
+                }
+
+                // Tooltip ayarlama
+                if (nextEvent) {
+                    const timeStr = new Date(nextEvent.datetime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                    btn.title = `Bugün ${count} Görev! Yaklaşan: ${nextEvent.subject} (${timeStr})`;
+                }
+
+                // Animasyon kontrolü
+                if (urgent) {
+                    btn.classList.add('pulse-urgent');
+                } else {
+                    btn.classList.remove('pulse-urgent');
+                }
+
+            } else {
+                badge.style.display = 'none';
+                btn.classList.remove('pulse-urgent');
+                btn.title = "Ajanda / Takvim";
+            }
+        } catch (e) {
+            console.error("Ajanda kontrol hatası:", e);
+        }
+    }
 
     function checkExpiryDates() {
         const today = new Date();
