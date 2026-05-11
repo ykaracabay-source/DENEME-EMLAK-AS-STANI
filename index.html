@@ -922,7 +922,58 @@
         const storedVAT = localStorage.getItem('KaracabayRE_VAT_v1');
         if(storedVAT) globalVAT = parseFloat(storedVAT);
     }
+    function initImarLinks() { 
+        if (imarLinks.length === 0) { 
+            const defaults = [ 
+                {name: "Muratpaşa (Resmi)", url: "https://muratpasa-bld.gov.tr/", type: "belediye"}, 
+                {name: "Kepez", url: "https://www.kepez-bld.gov.tr/", type: "belediye"}, 
+                {name: "Konyaaltı", url: "https://www.konyaalti.bel.tr/", type: "belediye"} 
+            ]; 
+            imarLinks = defaults; 
+            localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(imarLinks)); 
+        } 
+    }
     
+    function renderImarButtons() { 
+        const container = document.getElementById('imarListContainer'); 
+        container.innerHTML = ''; 
+        imarLinks.forEach((link, index) => { 
+            let iconHtml = '🏢';
+            if(link.type === 'satis') iconHtml = '🔑';
+            else if(link.type === 'resmi') iconHtml = '🏛️';
+            else if(link.type === 'sosyal') iconHtml = '📱';
+            else if(link.type === 'diger') iconHtml = '🔗';
+            
+            const div = document.createElement('div'); 
+            div.style.display = 'flex'; div.style.alignItems = 'center'; div.style.overflow = 'hidden'; 
+            
+            div.innerHTML = ` 
+                <button class="btn-imar-select" style="flex:1; min-width:0;" onclick="window.open('${link.url}', '_blank')"> 
+                    <span style="font-size:14px; margin-right:5px; flex-shrink:0;">${iconHtml}</span> 
+                    <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;">${link.name}</span> 
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px; opacity:0.7; flex-shrink:0; margin-left:5px;"></i> 
+                </button> 
+                <button class="btn-imar-delete" style="flex-shrink:0;" onclick="deleteImarLink(${index})" title="Sil"><i class="fa-solid fa-trash"></i></button> 
+            `; 
+            container.appendChild(div); 
+        }); 
+    }
+    
+    function addImarLink() { 
+        const city = document.getElementById('imarCityInput').value; 
+        const dist = document.getElementById('imarDistInput').value; 
+        const url = document.getElementById('imarUrlInput').value; 
+        const type = document.getElementById('imarTypeSelect').value;
+        if(!url) { alert("Link yapıştırın."); return; } 
+        let name = dist ? (city ? `${dist} (${city})` : dist) : (city || "Yeni Bağlantı"); 
+        imarLinks.push({ name: name, url: url, type: type }); 
+        localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(imarLinks)); 
+        renderImarButtons(); document.getElementById('imarUrlInput').value = ''; 
+    }
+    
+    function deleteImarLink(index) { if(confirm("Silinsin mi?")) { imarLinks.splice(index, 1); localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(imarLinks)); renderImarButtons(); } }
+    
+    function searchGoogleImar() { const dist = document.getElementById('imarDistInput').value; if(!dist) { alert("Arama için 'Ad / İlçe' kısmını doldurun."); return; } window.open(`https://www.google.com/search?q=${encodeURIComponent(dist + ' belediyesi imar durumu')}`, '_blank'); }
     let editingId = null; let crmEditingId = null;
 
     // --- YENİ EKLENEN: AKILLI AJANDA KONTROLCÜSÜ ---
@@ -1512,4 +1563,3 @@
 </script>
 </body>
 </html>
-
