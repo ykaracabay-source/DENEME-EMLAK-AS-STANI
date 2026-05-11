@@ -645,7 +645,7 @@
 
 <div id="descModal" class="modal" onclick="closeModalOutside(event, 'descModal')">
     <div class="modal-content tool-modal-content">
-        <span onclick="closeModal('descModal')" style="cursor:float:right;font-size:24px;">&times;</span>
+        <span onclick="closeModal('descModal')" style="cursor:pointer;float:right;font-size:24px;">&times;</span>
         <h3 id="descModalTitle"><i class="fa-solid fa-note-sticky"></i> Notlar</h3>
         <p id="modalText" style="white-space: pre-wrap; margin-top:10px;"></p>
     </div>
@@ -1079,6 +1079,118 @@
         oranListesi.forEach(o => { const opt = document.createElement('option'); opt.value = o; dlOran.appendChild(opt); });
     }
 
+    function saveToDisk() { localStorage.setItem('KaracabayRE_EST_DB_v19', JSON.stringify(portfolio)); localStorage.setItem('KaracabayRE_CRM_v19', JSON.stringify(crmData)); localStorage.setItem('KaracabayRE_CHK_v1', JSON.stringify(checklist)); localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(imarLinks)); updateDashboard(); }
+    function downloadData() { const d = { portfolio: portfolio, crm: crmData, checklist: checklist, imarLinks: imarLinks }; const a = document.createElement('a'); a.href = "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(d)); let now = new Date(); let dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0') + "_" + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0'); a.download = "Karacabay_Yedek_" + dateStr + ".json"; document.body.appendChild(a); a.click(); a.remove(); }
+    
+    function uploadData(input) {
+        const f = input.files[0];
+        if(!f) return;
+        const r = new FileReader();
+        r.onload = e => {
+            let raw = e.target.result;
+            if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+            if(!raw || raw.trim() === "") { alert("Dosya boş!"); return; }
+            
+            let d;
+            try {
+                d = JSON.parse(raw);
+            } catch(err1) {
+                console.log("Gizli boşluklar/satır atlamalar tespit edildi, onarılıyor...");
+                try {
+                    let inString = false; let fixed = ""; let escapeNext = false;
+                    for (let i = 0; i < raw.length; i++) {
+                        let char = raw[i];
+                        if (escapeNext) { fixed += char; escapeNext = false; continue; }
+                        if (char === '\\') { escapeNext = true; fixed += char; }
+                        else if (char === '"') { inString = !inString; fixed += char; }
+                        else if (inString && (char === '\n' || char === '\r' || char === '\t')) {
+                            if (char === '\n') fixed += "\\n";
+                            else if (char === '\r') fixed += "\\r";
+                            else if (char === '\t') fixed += "\\t";
+                        } else { fixed += char; }
+                    }
+                    d = JSON.parse(fixed);
+                } catch(err2) {
+                    alert("❌ Dosya onarılamayacak kadar hasar görmüş veya şifrelenmiş.");
+                    input.value = ''; return;
+                }
+            }
+
+            if (d.portfolio || d.crm || Array.isArray(d)) {
+                if(confirm("Yedek verileri sisteme yüklensin mi?\nMevcut veriler güncellenecektir.")) {
+                    if(Array.isArray(d)) {
+                        portfolio = d;
+                        if(!crmData || !crmData.investors) crmData = { investors: [], network: [] };
+                        if(!checklist) checklist = [];
+                        if(!imarLinks) imarLinks = [];
+                    } else {
+                        if(d.portfolio) portfolio = d.portfolio;
+                        if(d.crm) crmData = d.crm;
+                        if(d.checklist) checklist = d.checklist;
+                        if(d.imarLinks) imarLinks = d.imarLinks;
+                    }
+                    saveToDisk();
+                    alert("✅ Yükleme Başarılı! Verileriniz Kurtarıldı. Sayfa yenileniyor...");
+                    window.location.reload();
+                }
+            } else { alert("⚠️ Hata: Geçersiz dosya formatı."); }
+            input.value = '';
+        };
+        r.readAsText(f, 'UTF-8');
+    }
+
+    function initImarLinks() { 
+        if (imarLinks.length === 0) { 
+            const defaults = [ 
+                {name: "Muratpaşa (Resmi)", url: "https://muratpasa-bld.gov.tr/", type: "belediye"}, 
+                {name: "Kepez", url: "https://www.kepez-bld.gov.tr/", type: "belediye"}, 
+                {name: "Konyaaltı", url: "https://www.konyaalti.bel.tr/", type: "belediye"} 
+            ]; 
+            imarLinks = defaults; 
+            localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(imarLinks)); 
+        } 
+    }
+    
+    function renderImarButtons() { 
+        const container = document.getElementById('imarListContainer'); 
+        container.innerHTML = ''; 
+        imarLinks.forEach((link, index) => { 
+            let iconHtml = '🏢';
+            if(link.type === 'satis') iconHtml = '🔑';
+            else if(link.type === 'resmi') iconHtml = '🏛️';
+            else if(link.type === 'sosyal') iconHtml = '📱';
+            else if(link.type === 'diger') iconHtml = '🔗';
+            
+            const div = document.createElement('div'); 
+            div.style.display = 'flex'; div.style.alignItems = 'center'; div.style.overflow = 'hidden'; 
+            
+            div.innerHTML = ` 
+                <button class="btn-imar-select" style="flex:1; min-width:0;" onclick="window.open('${link.url}', '_blank')"> 
+                    <span style="font-size:14px; margin-right:5px; flex-shrink:0;">${iconHtml}</span> 
+                    <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:left;">${link.name}</span> 
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px; opacity:0.7; flex-shrink:0; margin-left:5px;"></i> 
+                </button> 
+                <button class="btn-imar-delete" style="flex-shrink:0;" onclick="deleteImarLink(${index})" title="Sil"><i class="fa-solid fa-trash"></i></button> 
+            `; 
+            container.appendChild(div); 
+        }); 
+    }
+    
+    function addImarLink() { 
+        const city = document.getElementById('imarCityInput').value; 
+        const dist = document.getElementById('imarDistInput').value; 
+        const url = document.getElementById('imarUrlInput').value; 
+        const type = document.getElementById('imarTypeSelect').value;
+        if(!url) { alert("Link yapıştırın."); return; } 
+        let name = dist ? (city ? `${dist} (${city})` : dist) : (city || "Yeni Bağlantı"); 
+        imarLinks.push({ name: name, url: url, type: type }); 
+        localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(imarLinks)); 
+        renderImarButtons(); document.getElementById('imarUrlInput').value = ''; 
+    }
+    
+    function deleteImarLink(index) { if(confirm("Silinsin mi?")) { imarLinks.splice(index, 1); localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(imarLinks)); renderImarButtons(); } }
+    function searchGoogleImar() { const dist = document.getElementById('imarDistInput').value; if(!dist) { alert("Arama için 'Ad / İlçe' kısmını doldurun."); return; } window.open(`https://www.google.com/search?q=${encodeURIComponent(dist + ' belediyesi imar durumu')}`, '_blank'); }
+
     function handleCityChange(citySelectId, districtElemId, datalistId) { const city = document.getElementById(citySelectId).value; const distElem = document.getElementById(districtElemId); document.getElementById(datalistId).innerHTML = ''; if(districtElemId === 'filterDistrict') { distElem.innerHTML = '<option value="all">İlçe</option>'; if (city !== "all" && turkiyeData[city]) { turkiyeData[city].sort().forEach(d => { const opt = document.createElement('option'); opt.value = d; opt.innerText = d; distElem.appendChild(opt); }); } } else { distElem.value = ''; const dl = document.getElementById('dl_ilce_ekle'); dl.innerHTML = ''; if (turkiyeData[city]) { turkiyeData[city].sort().forEach(d => { const opt = document.createElement('option'); opt.value = d; dl.appendChild(opt); }); } } }
     function loadMahalleler(citySelectId, districtElemId, datalistId) { const city = document.getElementById(citySelectId).value; const district = document.getElementById(districtElemId).value; const dl = document.getElementById(datalistId); dl.innerHTML = ''; if(city === "Antalya" && antalyaData[district]) { antalyaData[district].sort().forEach(m=>{ let o=document.createElement('option'); o.value=m; dl.appendChild(o); }); } }
     function clearFilters() { document.getElementById('searchBox').value = ''; document.getElementById('filterOwnership').value = 'all'; document.getElementById('filterType').value = 'all'; document.getElementById('filterStatus').value = 'all'; document.getElementById('filterSort').value = 'default'; document.getElementById('filterCity').value = 'Antalya'; handleCityChange('filterCity', 'filterDistrict', 'dl_mahalle_filtre'); document.getElementById('filterDistrict').value = 'all'; document.getElementById('filterNeighborhood').value = ''; document.getElementById('filterRooms').value = ''; document.getElementById('filterMinPrice').value = ''; document.getElementById('filterMaxPrice').value = ''; document.getElementById('chkIncludeProcess').checked = false; const masterCb = document.getElementById('masterCheckbox'); if(masterCb) masterCb.checked = false; renderTable(); }
@@ -1406,108 +1518,6 @@
     function toggleCheck(i){ checklist[i].checked=!checklist[i].checked;localStorage.setItem('KaracabayRE_CHK_v1',JSON.stringify(checklist));renderChecklist();}
     function deleteCheckItem(i){ checklist.splice(i,1);localStorage.setItem('KaracabayRE_CHK_v1',JSON.stringify(checklist));renderChecklist();}
     function deleteFromForm() { if(confirm("Kayıt silinsin mi?")) { portfolio = portfolio.filter(p => p.id !== editingId); saveToDisk(); renderTable(); resetForm(); } }
-
-    function saveToDisk() { localStorage.setItem('KaracabayRE_EST_DB_v19', JSON.stringify(portfolio)); localStorage.setItem('KaracabayRE_CRM_v19', JSON.stringify(crmData)); localStorage.setItem('KaracabayRE_CHK_v1', JSON.stringify(checklist)); localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(imarLinks)); updateDashboard(); }
-    
-    function downloadData() {
-        const allKeys = [
-            'KaracabayRE_EST_DB_v19',
-            'KaracabayRE_CRM_v19',
-            'KaracabayRE_CHK_v1',
-            'KaracabayRE_IMAR_v1',
-            'KaracabayRE_Profile_v1',
-            'KaracabayRE_VAT_v1',
-            'epa_calendar_events',
-            'ki_portfolios',
-            'ki_profile',
-            'ki_stopaj',
-            'eh_t_rates_final_v6',
-            'eh_s_rates_final_v6'
-        ];
-
-        let backupData = {};
-        let hasData = false;
-
-        allKeys.forEach(key => {
-            let data = localStorage.getItem(key);
-            if (data) {
-                try {
-                    backupData[key] = JSON.parse(data);
-                } catch (e) {
-                    backupData[key] = data;
-                }
-                hasData = true;
-            }
-        });
-
-        if (!hasData) {
-            alert("Sistemde yedeklenecek herhangi bir veri bulunamadı!");
-            return;
-        }
-
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-        const a = document.createElement('a');
-        
-        let now = new Date();
-        let dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2, '0') + "-" + String(now.getDate()).padStart(2, '0') + "_" + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
-        
-        a.href = dataStr;
-        a.download = "EPA_TamYedek_" + dateStr + ".json";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-    }
-
-    function uploadData(input) {
-        const file = input.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                let importedData = JSON.parse(e.target.result);
-                let restoredCount = 0;
-
-                // ESKİ YEDEK UYUMLULUĞU (v75 ve altı formattaysa)
-                if (importedData.portfolio && !importedData.KaracabayRE_EST_DB_v19) {
-                    if(confirm("Eski sürüm bir yedek dosyası algılandı. Yeni sisteme entegre edilerek yüklensin mi?")) {
-                        if(importedData.portfolio) localStorage.setItem('KaracabayRE_EST_DB_v19', JSON.stringify(importedData.portfolio));
-                        if(importedData.crm) localStorage.setItem('KaracabayRE_CRM_v19', JSON.stringify(importedData.crm));
-                        if(importedData.checklist) localStorage.setItem('KaracabayRE_CHK_v1', JSON.stringify(importedData.checklist));
-                        if(importedData.imarLinks) localStorage.setItem('KaracabayRE_IMAR_v1', JSON.stringify(importedData.imarLinks));
-                        
-                        alert("Eski yedek başarıyla yeni merkeze uyarlanarak yüklendi. Sayfa yenileniyor...");
-                        window.location.reload();
-                        return;
-                    } else {
-                        input.value = '';
-                        return;
-                    }
-                }
-
-                // YENİ MERKEZİ SİSTEM GERİ YÜKLEME
-                for (const key in importedData) {
-                    if (importedData.hasOwnProperty(key)) {
-                        const value = typeof importedData[key] === 'object' ? JSON.stringify(importedData[key]) : importedData[key];
-                        localStorage.setItem(key, value);
-                        restoredCount++;
-                    }
-                }
-
-                if (restoredCount > 0) {
-                    alert(`✅ Harika! Toplam ${restoredCount} modülün verisi (Ana Sistem, Ajanda, Emlak, Fizibilite) başarıyla geri yüklendi. Sayfa yenileniyor...`);
-                    window.location.reload(); 
-                } else {
-                    alert("Seçilen yedek dosyasının içi boş.");
-                }
-            } catch (error) {
-                alert("❌ Hata: Yüklemeye çalıştığınız dosya geçerli bir EPA yedek dosyası değil veya hasar görmüş!");
-                console.error("Geri yükleme hatası:", error);
-            }
-            input.value = ''; // Yükleme kutusunu temizle
-        };
-        reader.readAsText(file, 'UTF-8');
-    }
 
 </script>
 </body>
