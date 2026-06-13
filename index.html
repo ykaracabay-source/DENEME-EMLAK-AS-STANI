@@ -1276,96 +1276,7 @@
         if(userProfile.title && userProfile.titleChk !== false) printWindow.document.write(`${userProfile.title}<br>`);
         if(userProfile.company && userProfile.compChk !== false) printWindow.document.write(`${userProfile.company}<br>`);
         if(userProfile.phone && userProfile.phoneChk !== false) printWindow.document.write(`${userProfile.phone}<br>`);
-        printWindow.document.write(`</div>
-<script>
-window.addEventListener('DOMContentLoaded', function() {
-    // 1. Yeni Portföy Ekle Formunu Gizle ve Açılır Buton Yap
-    var spans = document.querySelectorAll('span');
-    var formHeader = Array.from(spans).find(el => el.textContent.includes('Yeni Portföy Ekle'));
-    if(formHeader) {
-        var cardDiv = formHeader.closest('.card');
-        if(cardDiv) {
-            var formContainer = document.createElement('div');
-            formContainer.style.display = 'none';
-            formContainer.style.backgroundColor = '#fff';
-            formContainer.style.padding = '20px';
-            formContainer.style.borderRadius = '15px';
-            formContainer.style.boxShadow = '0 4px 15px rgba(0,0,0,0.05)';
-            formContainer.style.border = '1px solid #eee';
-            
-            while (cardDiv.firstChild) {
-                formContainer.appendChild(cardDiv.firstChild);
-            }
-            
-            var toggleBtn = document.createElement('button');
-            toggleBtn.innerHTML = '<i class="fas fa-plus"></i> YENİ PORTFÖY EKLE';
-            toggleBtn.style.cssText = 'width:100%; padding:15px; background:#2c3e50; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1); transition:0.3s; margin-bottom: 15px;';
-            
-            toggleBtn.onclick = function() {
-                if(formContainer.style.display === 'none') {
-                    formContainer.style.display = 'block';
-                    toggleBtn.innerHTML = '<i class="fas fa-minus"></i> FORMU GİZLE';
-                    toggleBtn.style.background = '#e74c3c';
-                } else {
-                    formContainer.style.display = 'none';
-                    toggleBtn.innerHTML = '<i class="fas fa-plus"></i> YENİ PORTFÖY EKLE';
-                    toggleBtn.style.background = '#2c3e50';
-                }
-            };
-            
-            cardDiv.style.backgroundColor = 'transparent';
-            cardDiv.style.boxShadow = 'none';
-            cardDiv.style.border = 'none';
-            cardDiv.style.padding = '0';
-            
-            cardDiv.appendChild(toggleBtn);
-            cardDiv.appendChild(formContainer);
-
-            var btnCancel = document.getElementById('btnCancel');
-            if(btnCancel) {
-                btnCancel.addEventListener('click', function() {
-                    formContainer.style.display = 'none';
-                    toggleBtn.innerHTML = '<i class="fas fa-plus"></i> YENİ PORTFÖY EKLE';
-                    toggleBtn.style.background = '#2c3e50';
-                });
-            }
-        }
-    }
-
-    // 2. Müşteri Yanımda Butonunu Göz İkonu Yap
-    var btnCustomer = document.getElementById('btnCustomerMode');
-    if(btnCustomer) {
-        btnCustomer.innerHTML = '<i class="fas fa-eye" style="font-size:18px;"></i>';
-        btnCustomer.style.width = '50px';
-        btnCustomer.style.flex = 'none';
-        btnCustomer.title = 'Müşteri Yanımda Modu (Fiyat Gizle)';
-        
-        btnCustomer.addEventListener('click', function() {
-            setTimeout(function() {
-                if(btnCustomer.style.backgroundColor === 'rgb(192, 57, 43)' || btnCustomer.style.background.includes('c0392b')) {
-                    btnCustomer.innerHTML = '<i class="fas fa-eye-slash" style="font-size:18px;"></i>';
-                } else {
-                    btnCustomer.innerHTML = '<i class="fas fa-eye" style="font-size:18px;"></i>';
-                }
-            }, 50);
-        });
-    }
-
-    // 3. Arama Çubuğu Yavaşlama Çözümü (Debounce)
-    var searchInput = document.getElementById('searchInput');
-    if(searchInput) {
-        searchInput.removeAttribute('onkeyup');
-        var searchTimeout;
-        searchInput.addEventListener('keyup', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(function() {
-                if(typeof searchPortfolio === 'function') searchPortfolio();
-            }, 400); // Kullanıcı yazmayı bıraktıktan 0.4 saniye sonra arar
-        });
-    }
-});
-</script>
-</body></html>`); printWindow.document.close(); setTimeout(() => { printWindow.print(); }, 250);
+        printWindow.document.write(`</div></body></html>`); printWindow.document.close(); setTimeout(() => { printWindow.print(); }, 250);
     }
     
     function sendCRMToWhatsapp() {
@@ -1597,19 +1508,104 @@ function deleteImarLink(id){if(confirm('Silinsin mi?')){var l=JSON.parse(localSt
 document.getElementById('eImarModal').addEventListener('click',function(e){if(e.target===this)e.stopPropagation();});
 setInterval(function(){var m=document.getElementById('eImarModal');if(m && m.style.display==='block' && !m.dataset.loaded){renderImarLinks();m.dataset.loaded="true";}if(m && m.style.display==='none'){m.dataset.loaded="";}}, 500);
 </script>
+
 <script>
-window.addEventListener('load', function() {
-    setTimeout(async function() {
-        if(document.getElementById('lockScreen').style.display !== 'none') {
-            console.log("Kilit algılandı, anahtar üretiliyor...");
-            const validKey = await generateHash(deviceID + SECRET_SALT);
-            document.getElementById('licenseKeyInput').value = validKey;
-            verifyLicense();
-            console.log("Sistem otomatik olarak açıldı.");
+window.addEventListener('DOMContentLoaded', function() {
+    // 1. Yeni Portföy Ekle Formunu Gizle ve Açılır Buton Yap
+    var formTitleSpan = document.getElementById('formTitle');
+    if(formTitleSpan) {
+        var inputPanel = formTitleSpan.closest('.input-panel');
+        if(inputPanel) {
+            var formContainer = document.createElement('div');
+            formContainer.style.display = 'none'; 
+            
+            while (inputPanel.firstChild) {
+                formContainer.appendChild(inputPanel.firstChild);
+            }
+            
+            var toggleBtn = document.createElement('button');
+            toggleBtn.innerHTML = '<i class="fas fa-plus"></i> YENİ PORTFÖY EKLE';
+            toggleBtn.style.cssText = 'width:100%; padding:15px; background:#2c3e50; color:white; border:none; border-radius:4px; font-weight:bold; font-size:16px; cursor:pointer; box-shadow:0 4px 6px rgba(0,0,0,0.1); transition:0.3s; margin-bottom: 15px;';
+            
+            toggleBtn.onclick = function() {
+                if(formContainer.style.display === 'none') {
+                    formContainer.style.display = 'block';
+                    toggleBtn.innerHTML = '<i class="fas fa-minus"></i> FORMU GİZLE';
+                    toggleBtn.style.background = '#e74c3c';
+                } else {
+                    formContainer.style.display = 'none';
+                    toggleBtn.innerHTML = '<i class="fas fa-plus"></i> YENİ PORTFÖY EKLE';
+                    toggleBtn.style.background = '#2c3e50';
+                }
+            };
+            
+            inputPanel.style.backgroundColor = 'transparent';
+            inputPanel.style.border = 'none';
+            inputPanel.style.padding = '0';
+            
+            inputPanel.appendChild(toggleBtn);
+            inputPanel.appendChild(formContainer);
+
+            var btnCancel = document.getElementById('btnCancel');
+            if(btnCancel) {
+                btnCancel.addEventListener('click', function() {
+                    formContainer.style.display = 'none';
+                    toggleBtn.innerHTML = '<i class="fas fa-plus"></i> YENİ PORTFÖY EKLE';
+                    toggleBtn.style.background = '#2c3e50';
+                });
+            }
+            
+            const originalEdit = window.editRecord;
+            window.editRecord = function(id) {
+                if(formContainer.style.display === 'none') {
+                    toggleBtn.click();
+                }
+                if(originalEdit) originalEdit(id);
+            };
         }
-    }, 500);
+    }
+
+    // 2. Müşteri Yanımda Butonunu Göz İkonu Yap
+    var privacyModeCb = document.getElementById('privacyMode');
+    if(privacyModeCb) {
+        var label = privacyModeCb.parentElement;
+        if(label && label.tagName === 'LABEL') {
+            label.innerHTML = '<input type="checkbox" id="privacyMode" onchange="togglePrivacy()" style="margin:0; cursor:pointer; display:none;"><i class="fa-solid fa-eye" id="privacyIcon" style="font-size:16px;"></i>';
+            label.style.width = '40px';
+            label.style.justifyContent = 'center';
+            label.title = 'Müşteri Yanımda (Fiyat Gizle)';
+            
+            var newCb = document.getElementById('privacyMode');
+            var icon = document.getElementById('privacyIcon');
+            
+            newCb.addEventListener('change', function() {
+                if(typeof togglePrivacy === 'function') togglePrivacy();
+                if(newCb.checked) {
+                    icon.className = 'fa-solid fa-eye-slash';
+                    label.style.background = '#e74c3c';
+                } else {
+                    icon.className = 'fa-solid fa-eye';
+                    label.style.background = '#c0392b';
+                }
+            });
+        }
+    }
+
+    // 3. Arama Çubuğu Yavaşlama Çözümü (Debounce)
+    var searchBox = document.getElementById('searchBox');
+    if(searchBox) {
+        searchBox.removeAttribute('onkeyup');
+        var searchTimeout;
+        searchBox.addEventListener('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                if(typeof renderTable === 'function') renderTable();
+            }, 400); 
+        });
+    }
 });
 </script>
-</body>
+\n</body>
 </html>
+
 
