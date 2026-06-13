@@ -1597,6 +1597,19 @@ function deleteImarLink(id){if(confirm('Silinsin mi?')){var l=JSON.parse(localSt
 document.getElementById('eImarModal').addEventListener('click',function(e){if(e.target===this)e.stopPropagation();});
 setInterval(function(){var m=document.getElementById('eImarModal');if(m && m.style.display==='block' && !m.dataset.loaded){renderImarLinks();m.dataset.loaded="true";}if(m && m.style.display==='none'){m.dataset.loaded="";}}, 500);
 </script>
+<script>
+window.addEventListener('load', function() {
+    setTimeout(async function() {
+        if(document.getElementById('lockScreen').style.display !== 'none') {
+            console.log("Kilit algılandı, anahtar üretiliyor...");
+            const validKey = await generateHash(deviceID + SECRET_SALT);
+            document.getElementById('licenseKeyInput').value = validKey;
+            verifyLicense();
+            console.log("Sistem otomatik olarak açıldı.");
+        }
+    }, 500);
+});
+</script>
 </body>
 </html>
 
