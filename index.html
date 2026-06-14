@@ -1233,11 +1233,11 @@
             let floorInfo = ""; if (item.floor && item.floor !== "SEÇİNİZ") { floorInfo = `<br><small>${item.floor}</small>`; } if(item.floorCount) floorInfo += `<br>${item.floorCount}`; 
             let currSymbol = item.currency || '₺'; 
             
-            let dText = item.desc ? item.desc.replace(/\n/g, '\\n').replace(/'/g, "\\'") : '';
+           let dText = item.desc ? item.desc.replace(/\n/g, '\\n').replace(/'/g, "\\'") : '';
             let btnDesc = item.desc ? `<button onclick="showModal('<i class=\\'fa-solid fa-note-sticky\\'></i> Genel Notlar', '${dText}')" class="btn-icon no-print" style="background:#9b59b6;border:none;color:white;border-radius:3px;cursor:pointer;margin-right:3px;padding:3px 6px;" title="Açıklama Oku"><i class="fa-solid fa-note-sticky"></i></button>` : '';
-            
+
             let pText = item.process ? item.process.replace(/\n/g, '\\n').replace(/'/g, "\\'") : '';
-            let btnProcess = (item.process && item.process.trim() !== "") ? `<button onclick="showModal('<i class=\\'fa-solid fa-clock-rotate-left\\'></i> Süreç / İşlem Takibi', '${pText}')" class="btn-icon no-print" style="background:#c0392b;border:none;color:white;border-radius:3px;cursor:pointer;padding:3px 6px;" title="Süreç Notlarını Oku"><i class="fa-solid fa-clock-rotate-left"></i></button>` : '';';
+            let btnProcess = (item.process && item.process.trim() !== "") ? `<button onclick="showModal('<i class=\\'fa-solid fa-clock-rotate-left\\'></i> Süreç / İşlem Takibi', '${pText}')" class="btn-icon no-print" style="background:#c0392b;border:none;color:white;border-radius:3px;cursor:pointer;padding:3px 6px;" title="Süreç Notlarını Oku"><i class="fa-solid fa-clock-rotate-left"></i></button>` : '';
             let notesHtml = (btnDesc === '' && btnProcess === '') ? '-' : btnDesc + btnProcess;
             
             let own = item.ownership || 'BANA AİT'; let ownBadgeClass = (own === 'PAYLAŞIMLI') ? 'badge-shared' : 'badge-own'; let ownLabel = (own === 'PAYLAŞIMLI') ? 'PAYLAŞIMLI' : 'BANA AİT'; 
