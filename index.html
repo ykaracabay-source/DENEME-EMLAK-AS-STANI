@@ -1604,7 +1604,49 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+// --- TÜM SİSTEMİ BİRLEŞTİREN TEK BLOK ---
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Yeni Portföy Ekle Formu
+    var formTitle = document.getElementById('formTitle');
+    if (formTitle) {
+        var inputPanel = formTitle.closest('.input-panel');
+        if (inputPanel) {
+            var formContent = document.createElement('div');
+            formContent.style.display = 'none';
+            while (inputPanel.children.length > 2) { formContent.appendChild(inputPanel.children[2]); }
+            inputPanel.appendChild(formContent);
+            var toggleBtn = document.createElement('button');
+            toggleBtn.innerHTML = '<i class="fas fa-plus"></i> YENİ PORTFÖY EKLE';
+            toggleBtn.style.cssText = 'width:100%; padding:15px; background:#2c3e50; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer; margin-bottom: 10px;';
+            toggleBtn.onclick = function() {
+                formContent.style.display = (formContent.style.display === 'none') ? 'block' : 'none';
+                toggleBtn.innerHTML = (formContent.style.display === 'block') ? '<i class="fas fa-minus"></i> GİZLE' : '<i class="fas fa-plus"></i> YENİ PORTFÖY EKLE';
+            };
+            inputPanel.prepend(toggleBtn);
+        }
+    }
+    // 2. Arama Debounce
+    var searchBox = document.getElementById('searchBox');
+    if (searchBox) {
+        searchBox.removeAttribute('onkeyup');
+        var timer;
+        searchBox.addEventListener('keyup', function() {
+            clearTimeout(timer);
+            timer = setTimeout(function() { if(typeof renderTable === 'function') renderTable(); }, 300);
+        });
+    }
+    // 3. Göz İkonu
+    var priv = document.getElementById('privacyMode');
+    if (priv) {
+        priv.style.display = 'none';
+        var label = priv.parentElement;
+        var icon = document.createElement('i');
+        icon.className = 'fa-solid fa-eye';
+        icon.style.cursor = 'pointer';
+        label.appendChild(icon);
+        icon.onclick = function() { priv.click(); icon.className = priv.checked ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'; };
+    }
+});
 </script>
 </body>
 </html>
-
