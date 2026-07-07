@@ -283,7 +283,8 @@
     <div id="print-area"></div>
 
 <script>
-    const ehFormatter = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
+    // ₺ Sembolünü sona taşıyan özel formatlayıcı
+    const ehFormatter = { format: function(val) { return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(val) + " ₺"; } };
     function ehFormatCur(el) { let val = el.value.replace(/\D/g, ""); if(!val) { el.value = ""; return; } el.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
     function ehGetNum(id) { let val = document.getElementById(id).value; return parseFloat(val.replace(/\./g, '')) || 0; }
     
@@ -498,6 +499,8 @@
         const val1 = isPesinIyi ? ekstraMaliyet : totFz;
         const val2 = isPesinIyi ? totFz : ekstraMaliyet;
         
+        let planText = isS ? `Plan: <strong>Sabit Taksit (%${vf} Vade Farkı)</strong>` : `Plan: <strong>Esnek / Ara Ödemeli</strong>`;
+        
         const yasalUyariText = `
         <div style="margin-top:35px; padding:20px; border: 1px dashed #e53e3e; background: #fffaf0; border-radius:10px;">
             <div style="color:#c53030; font-weight:900; font-size:13px; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
@@ -517,7 +520,7 @@
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:30px; font-size:13px; background:#f8fafc; padding:20px; border-radius:10px; border:1px solid #e2e8f0;">
                     <div><h4 style="margin:0 0 10px 0; color:#3498db;">1. YATIRIM GİRDİLERİ</h4>Liste Fiyatı: <strong>${ehFormatter.format(lp)}</strong><br>İndirimli Peşin Fiyat: <strong>${ehFormatter.format(pf)}</strong><br>Ödenen Peşinat: <strong>${ehFormatter.format(pt)}</strong><br>Vadeli Planın Toplam Kaybı: <strong style="color:#c0392b;">${ehFormatter.format(ekstraMaliyet)}</strong><div style="font-size:10px; color:#718096; margin-top:3px;">*(Vazgeçilen İndirim: ${ehFormatter.format(lp - pf)}${vadeFarkiMaliyeti > 0 ? ' + Ödenen Vade Farkı: ' + ehFormatter.format(vadeFarkiMaliyeti) : ''})*</div></div>
-                    <div style="text-align:right;"><h4 style="margin:0 0 10px 0; color:#3498db;">2. FİNANSAL PARAMETRELER</h4>Vade: <strong>${v_display} Ay</strong> | Aylık Vade Farkı: <strong>%${vf}</strong><br>Yıllık Brüt Mevduat: <strong>%${bm}</strong><br>Net Mevduat Getirisi: <strong>%${(bm*(1-st/100)).toFixed(2)}</strong><br>Toplam Net Faiz Kazancı: <strong style="color:#27ae60;">+${ehFormatter.format(totFz)}</strong></div>
+                    <div style="text-align:right;"><h4 style="margin:0 0 10px 0; color:#3498db;">2. FİNANSAL PARAMETRELER</h4>Vade: <strong>${v_display} Ay</strong> | ${planText}<br>Yıllık Brüt Mevduat: <strong>%${bm}</strong><br>Net Mevduat Getirisi: <strong>%${(bm*(1-st/100)).toFixed(2)}</strong><br>Toplam Net Faiz Kazancı: <strong style="color:#27ae60;">+${ehFormatter.format(totFz)}</strong></div>
                 </div>
                 <div style="background:${isPesinIyi?'#fff5f5':'#f0fff4'}; border:2px solid ${isPesinIyi?'#feb2b2':'#9ae6b4'}; padding:25px; text-align:center; border-radius:10px; margin-bottom:30px;"><h2 style="margin:0; color:${isPesinIyi?'#c53030':'#2f855a'};">${isPesinIyi ? 'TAVSİYE: PEŞİN ALIM DAHA KAZANÇLI' : 'TAVSİYE: VADELİ ALIM DAHA KAZANÇLI'}</h2><div style="margin:20px 0; border-top:1px dashed #ccc; padding-top:15px;"><strong style="color:#4a5568; font-size:12px;">HESAP SAĞLAMASI (FINANSAL ISPAT):</strong><br><span style="font-size:13px; color:#718096;">${formulaText}</span><br><br><span style="font-size:20px; font-weight:900; color:${isPesinIyi?'#c53030':'#2f855a'};">${ehFormatter.format(val1)} - ${ehFormatter.format(val2)} = <strong>${ehFormatter.format(finalAdv)}</strong></span></div></div>
                 <h3 style="border-bottom:2px solid #2c3e50; padding-bottom:8px; color:#2c3e50; font-size:18px;">DETAYLI NAKİT AKIŞ VE KASA PROJEKSİYONU</h3>
