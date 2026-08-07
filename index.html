@@ -356,12 +356,16 @@
             <button class="tool-btn btn-calc" onclick="openModal('calcModal')"><i class="fa-solid fa-calculator"></i> HESAP</button>
             <button class="tool-btn btn-calc" onclick="openModal('currencyModal'); fetchCurrency();"><i class="fa-solid fa-money-bill-transfer"></i> DÖVİZ</button>
             
-            <a href="emlak.html" target="_blank" class="tool-btn btn-calc" style="text-decoration: none; align-items: center; display: flex;">
+           <a href="emlak.html" target="_blank" class="tool-btn btn-calc" style="text-decoration: none; align-items: center; display: flex;">
                 <i class="fa-solid fa-file-invoice"></i> EMLAK
             </a>
 
             <a href="fizibilite.html" target="_blank" class="tool-btn" style="background-color: #f39c12; color: #fff; text-decoration: none; align-items: center; display: flex;">
                 <i class="fa-solid fa-building-circle-check"></i> FİZİBİLİTE
+            </a>
+            
+            <a href="formlar.html" target="_blank" class="tool-btn" style="background-color: #27ae60; color: white; text-decoration: none; align-items: center; display: flex;" title="Sözleşmeler ve Formlar">
+                <i class="fa-solid fa-file-signature"></i> FORMLAR
             </a>
             
             <a href="takvim.html" target="_blank" class="tool-btn" id="btnAjanda" style="background-color: #c0392b; color: white; text-decoration: none; align-items: center; display: flex;" title="Ajanda / Takvim">
@@ -1356,8 +1360,13 @@
     }
 function showModal(title, text) { document.getElementById('descModalTitle').innerHTML = title; document.getElementById('modalText').innerText = text; document.getElementById('descModal').style.display = 'block'; }
 
-    // YENİ: Eşleşen portföyleri ana tabloda filtrelemek için global hafıza değişkeni
+   // YENİ: Eşleşen portföyleri ana tabloda filtrelemek için global hafıza değişkeni
     let activeMatchFilterIds = null; 
+
+    // YENİ: Sayfalama (Pagination) Hafıza Değişkenleri
+    let currentPage = 1;
+    const rowsPerPage = 30; // Ekranda görünecek portföy sayınız
+    let lastFilterState = ""; // Filtre değiştiğinde 1. sayfaya dönmek için izleyici
 
     // YENİ: Eşleşme modalındaki "Ana Listede Filtrele" butonunu tetikleyen fonksiyon
     function filterMainTableByMatches(ids) {
@@ -1374,7 +1383,14 @@ function showModal(title, text) { document.getElementById('descModalTitle').inne
         const fOwn = document.getElementById('filterOwnership').value; const fStatus = document.getElementById('filterStatus').value; const fType = document.getElementById('filterType').value; const fCity = document.getElementById('filterCity').value; const fDist = document.getElementById('filterDistrict').value; const fNeigh = toTRLower(document.getElementById('filterNeighborhood').value); const fRoom = toTRLower(document.getElementById('filterRooms').value); const minP = parsePrice(document.getElementById('filterMinPrice').value); const maxP = parsePrice(document.getElementById('filterMaxPrice').value);
         const fSort = document.getElementById('filterSort').value; 
 
-        const filtered = portfolio.filter(item => { 
+        // YENİ: Arama veya filtreleme yapıldığında otomatik olarak 1. sayfaya dön!
+        const currentFilterState = term + fOwn + fStatus + fType + fCity + fDist + fNeigh + fRoom + minP + maxP + fSort + (activeMatchFilterIds ? activeMatchFilterIds.join(',') : '');
+        if (currentFilterState !== lastFilterState) {
+            currentPage = 1;
+            lastFilterState = currentFilterState;
+        }
+
+        const filtered = portfolio.filter(item => {
             // EĞİTİM NOTU: Eğer hafızada eşleşen ID'ler varsa, diğer hiçbir filtreye bakma, sadece ID'si uyanları göster.
             if (activeMatchFilterIds !== null) {
                 return activeMatchFilterIds.includes(item.id);
@@ -1390,10 +1406,19 @@ function showModal(title, text) { document.getElementById('descModalTitle').inne
             const getStatusScore = (s) => { if (s === 'Satıldı') return 3; if (s === 'Kiralandı') return 2; return 1; }; 
             const scoreA = getStatusScore(a.status); const scoreB = getStatusScore(b.status); 
             if (scoreA !== scoreB) return scoreA - scoreB; 
-            if (scoreA === 1) { const ownerA = a.ownership || 'BANA AİT'; const ownerB = b.ownership || 'BANA AİT'; if (ownerA !== ownerB) return ownerA === 'BANA AİT' ? -1 : 1; } 
+           if (scoreA === 1) { const ownerA = a.ownership || 'BANA AİT'; const ownerB = b.ownership || 'BANA AİT'; if (ownerA !== ownerB) return ownerA === 'BANA AİT' ? -1 : 1; } 
             return b.id - a.id; 
         });
-filtered.forEach(item => { 
+
+        // YENİ: Sayfalama Matematiği (Sadece o sayfaya ait olan 30 portföyü kesip alıyoruz)
+        const totalPages = Math.ceil(filtered.length / rowsPerPage);
+        if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+        
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const paginatedItems = filtered.slice(startIndex, startIndex + rowsPerPage);
+
+        // DİKKAT: Artık uzun listeyi değil, kestiğimiz kısa listeyi (paginatedItems) çiziyoruz
+        paginatedItems.forEach(item => { 
             let badgeClass = '';
             if (item.status.includes('Satıldı') || item.status.includes('Kiralandı')) badgeClass = 'kirmizi-etiket';
             else if (item.status === 'Kat Karşılığı') badgeClass = 'kat-karsiligi';
@@ -1435,7 +1460,55 @@ filtered.forEach(item => {
     <button onclick="editRecord(${item.id})" style="background:#3498db;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
 </td> <td class="print-only">${item.desc}</td> </tr>`;
         });
+
+        // YENİ: Tablonun hemen altına sayfa numaralarını çiz!
+        renderPagination(totalPages);
+
 if (typeof updateMapMarkers === 'function') updateMapMarkers();
+    }
+
+    // --- YENİ: SAYFALAMA (PAGINATION) ÇİZİM VE KONTROL MOTORU ---
+    function changePage(page) {
+        currentPage = page;
+        renderTable();
+        // Sayfa değiştiğinde tabloyu görebilmeniz için ekranı tablonun başına kaydır
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function renderPagination(totalPages) {
+        let container = document.getElementById('paginationControls');
+        // Eğer butonlar için bir kutu yoksa, kod bunu tablonun hemen sonrasına kendi kendine ekler
+        if (!container) {
+            const table = document.getElementById('portfolioTable');
+            container = document.createElement('div');
+            container.id = 'paginationControls';
+            container.className = 'no-print'; // Yazdırma yaparken sayfa numaraları PDF'e çıkmasın
+            container.style.cssText = 'display:flex; justify-content:center; align-items:center; gap:5px; margin-top:15px; padding:10px; flex-wrap:wrap;';
+            table.parentNode.insertBefore(container, table.nextSibling);
+        }
+        
+        container.innerHTML = '';
+        if (totalPages <= 1) return; // Tek sayfa varsa (30'dan az portföy) buton çizmeye gerek yok
+
+        // "Önceki" Butonu
+        if (currentPage > 1) {
+            container.innerHTML += `<button onclick="changePage(${currentPage - 1})" style="background:#34495e; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px;"><i class="fa-solid fa-chevron-left"></i> Önceki</button>`;
+        }
+
+        // Akıllı Sayfa Numaraları (Çok fazla sayfa varsa aralara ... koyar ve ortalığı temiz tutar)
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                const isActive = (i === currentPage);
+                container.innerHTML += `<button onclick="changePage(${i})" style="background:${isActive ? '#27ae60' : '#ecf0f1'}; color:${isActive ? 'white' : '#333'}; border:1px solid ${isActive ? '#27ae60' : '#bdc3c7'}; padding:6px 10px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold; min-width:32px;">${i}</button>`;
+            } else if (i === currentPage - 3 || i === currentPage + 3) {
+                container.innerHTML += `<span style="color:#7f8c8d; font-weight:bold;">...</span>`;
+            }
+        }
+
+        // "Sonraki" Butonu
+        if (currentPage < totalPages) {
+            container.innerHTML += `<button onclick="changePage(${currentPage + 1})" style="background:#34495e; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px;">Sonraki <i class="fa-solid fa-chevron-right"></i></button>`;
+        }
     }
 
     function resetForm() {
@@ -1716,7 +1789,11 @@ if (typeof updateMapMarkers === 'function') updateMapMarkers();
             'ki_profile',
             'ki_stopaj',
             'eh_t_rates_final_v6',
-            'eh_s_rates_final_v6'
+            'eh_s_rates_final_v6',
+            'epa_custom_templates',
+            'epa_company_profile',
+            'epa_saved_documents',
+            'epa_legal_clauses'
         ];
 
         let backupData = {};
@@ -2556,8 +2633,33 @@ function initMap() {
     });
     
     map.addControl(new AramaKutusu());
+
+    // YENİ: Haritaya Sağ Tık (veya mobil cihazlarda uzun basma) Özelliği
+    map.on('contextmenu', function(e) {
+        // Tıklanan yerin koordinatlarını alıyoruz
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+
+        // Açılacak küçük bilgi penceresinin (popup) tasarımı
+        const popupContent = `
+            <div style="text-align:center; min-width: 140px;">
+                <b style="color:#2c3e50; font-size:13px;">📍 Bu Bölgeyi Keşfet</b><br>
+                <small style="color:#7f8c8d;">Koor: ${lat}, ${lng}</small><br>
+                <button onclick="reverseGeocodeAndDraw(${lat}, ${lng}); map.closePopup();" style="margin-top:10px; background:#e74c3c; color:white; border:none; padding:8px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:bold; width:100%; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition: 0.2s;">
+                    <i class="fa-solid fa-map-location-dot"></i> Hangi Mahalle? (Sınır Çiz)
+                </button>
+            </div>
+        `;
+
+        // Pencereyi sağ tıklanan koordinatta aç
+        L.popup()
+            .setLatLng(e.latlng)
+            .setContent(popupContent)
+            .openOn(map);
+    });
     // --------------------------------------------------------------------------------
 }
+
     // 3. Portföy Türüne Göre Renk Atama
     function getMarkerColor(type) {
         if (type === 'Daire') return '#3498db'; // Mavi
@@ -2769,17 +2871,18 @@ function drawMapMarker(item, lat, lng, row) {
                 <b style="color: #27ae60; font-size:14px;">${item.price} ${item.currency || '₺'}</b><br>
                 Oda: ${item.rooms || '-'} | ${item.gross || '-'}/${item.net || '-'} m²<br>
                 
-            <!-- Butonlar (Flexbox ile yan yana diziliyor) -->
+           <!-- Butonlar (Flexbox ile yan yana diziliyor) -->
                 <div style="display:flex; gap:3px; margin-top:8px;">
-                    <button onclick="findMatches(${item.id})" style="flex:1; background:#27ae60; color:white; border:none; border-radius:3px; cursor:pointer; font-size:11px; padding:6px 2px;" title="Alıcılarla Eşleştir"><i class="fa-solid fa-handshake"></i> Eşleştir</button>
-                    
-                    <button onclick="shareToMapWhatsApp(${item.id})" style="flex:1; background:#25D366; color:white; border:none; border-radius:3px; cursor:pointer; font-size:11px; padding:6px 2px;" title="WhatsApp ile Gönder"><i class="fa-brands fa-whatsapp"></i> WP</button>
+                    <!-- YENİ: Işınlama Butonu -->
+                    <button onclick="isinlaPortfoyu(${item.id})" style="flex:1; background:#8e44ad; color:white; border:none; border-radius:3px; cursor:pointer; font-weight:bold; font-size:11px; padding:6px 2px;" title="Portföyü aranan konuma ışınla"><i class="fa-solid fa-thumbtack"></i> Konumla</button>
                     
                     <button class="btn-go-list" onclick="scrollToRow(${item.id})" style="flex:1; margin-top:0; padding:6px 2px; font-size:11px;" title="Listede Bul"><i class="fa-solid fa-list"></i> Liste</button>
                     
-                    <button onclick="drawNeighborhoodBoundary('${item.district}', '${item.neighborhood}', '${item.city || 'Antalya'}')" style="flex:1; background:#e67e22; color:white; border:none; border-radius:3px; cursor:pointer; font-size:11px; padding:6px 2px;" title="Mahalle Sınırını Çiz"><i class="fa-solid fa-draw-polygon"></i> Sınır</button>
-                    
                     <button onclick="sabitHedefBirak(${item.id})" style="flex:1; background:#e74c3c; color:white; border:none; border-radius:3px; cursor:pointer; font-size:11px; padding:6px 2px;" title="Uzaklaştırmak İçin İşaretle"><i class="fa-solid fa-bullseye"></i> Seç</button>
+                </div>
+                
+                <div style="margin-top:5px;">
+                     <button onclick="drawNeighborhoodBoundary('${item.district}', '${item.neighborhood}', '${item.city || 'Antalya'}')" style="width:100%; background:#e67e22; color:white; border:none; border-radius:3px; cursor:pointer; font-size:11px; padding:6px 2px;" title="Mahalle Sınırını Çiz"><i class="fa-solid fa-draw-polygon"></i> ${item.neighborhood} Sınırını Çiz</button>
                 </div>
             </div>
         `;
@@ -2972,10 +3075,72 @@ function sabitHedefBirak(id) {
     cizimGecmisi.push(targetMarker);
     if (typeof guncelleSayac === 'function') guncelleSayac();
 
-    // Bilgi baloncuğunu kapat
+   // Bilgi baloncuğunu kapat
     map.closePopup();
 }
+
+// --- YENİ: PORTFÖYÜ HEDEFE IŞINLAMA (TELEPORT) MOTORU ---
+function isinlaPortfoyu(id) {
+    // 1. Arama kutusundan bulunan fosforlu hedefi (activeTargetPin) kontrol et
+    // Not: activeTargetPin değişkeni AramaKutusu modülü içinde tanımlandığı için, 
+    // globalde erişilebilsin diye AramaKutusu kodunda onu dışarıya (window nesnesine) açmamız gerekir.
+    // Ancak kod mimarisini bozmamak adına, boundaryLayer içindeki "target-pin" sınıflı marker'ı bulalım.
+    
+    let hedefKonum = null;
+    
+    // Boundary layer içindeki iğneleri tarıyoruz (Fosforlu hedef oraya ekleniyordu)
+    boundaryLayer.eachLayer(function(layer) {
+        if (layer instanceof L.Marker && layer.options.icon && layer.options.icon.options.className === 'target-pin') {
+            hedefKonum = layer.getLatLng();
+        }
+    });
+
+    if (!hedefKonum) {
+        alert("⚠️ Önce haritanın sağ üstündeki ARAMA kutusunu kullanarak bir konum bulun.\nPortföyünüz, arama sonucunda çıkan 'Fosforlu Yeşil İğne'nin olduğu yere taşınacaktır.");
+        return;
+    }
+
+    // 2. Taşınacak portföyü ve haritadaki iğnesini bul
+    const item = portfolio.find(p => p.id === id);
+    const marker = haritaIgneleri[id];
+
+    if (!item || !marker) {
+        alert("Bu portföy haritada bulunamadı.");
+        return;
+    }
+
+    // 3. Orijinal konumu hafızaya al (İptal edilirse geri dönmek için)
+    const originalPos = marker.getLatLng();
+    const newLat = hedefKonum.lat.toFixed(6);
+    const newLng = hedefKonum.lng.toFixed(6);
+
+    // 4. İğneyi anında hedefe taşı ve haritayı oraya odakla
+    marker.setLatLng(hedefKonum);
+    map.flyTo(hedefKonum, 18, { duration: 1.0 });
+
+    // 5. Onay iste
+    setTimeout(() => {
+        if (confirm(`📍 Konum Taşındı!\n\nBu portföyü arama sonucundaki (${newLat}, ${newLng}) noktasına ışınladınız.\nSisteme kalıcı olarak kaydedilsin mi?`)) {
+            
+            // Eğer "Tamam" derse, item (portföy) içine doğrudan yaz ve kaydet
+            item.mapLat = parseFloat(newLat);
+            item.mapLng = parseFloat(newLng);
+            item.mapNotFound = false; // Bulunamadı hatasını da sil
+            
+            saveToDisk(); // Anında veritabanına kaydeder
+            map.closePopup(); // Baloncuğu kapat
+            
+            alert("✅ Yeni konum başarıyla veritabanına kaydedildi!");
+        } else {
+            // Eğer "İptal" derse iğneyi eski konumuna geri fırlat
+            marker.setLatLng(originalPos);
+            map.flyTo(originalPos, 16, { duration: 1.0 });
+        }
+    }, 1200); // Haritanın uçuşu bittikten sonra sor
+}
+
 // 7. Mahalle Sınırlarını (Poligon) Çizen Ana Fonksiyon (GÜNCELLENDİ: Hafıza Sistemli)
+
     async function drawNeighborhoodBoundary(district, neighborhood, city) {
         
         // DİKKAT: Eski "boundaryLayer.clearLayers();" komutu SİLİNDİ. 
@@ -3237,6 +3402,61 @@ function renderPortfolioMatches(matches, inv) {
         });
     }
     openModal('matchModal');
+}
+
+// --- YENİ: TERS COĞRAFİ KODLAMA (Sağ Tık ile Mahalle Sınırı Bulma) ---
+async function reverseGeocodeAndDraw(lat, lng) {
+    const loadingOverlay = document.getElementById('mapLoadingOverlay');
+    const loadingText = document.getElementById('mapLoadingText');
+    
+    // Yükleniyor ekranını aç
+    if (loadingOverlay) {
+        loadingText.innerText = "Bölge Analiz Ediliyor...";
+        loadingOverlay.style.display = 'flex';
+    }
+
+    try {
+        // Eğitim Notu: OpenStreetMap sunucusuna tıklanan noktanın Enlem/Boylam verisini gönderip adresi soruyoruz.
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data && data.address) {
+            const addr = data.address;
+            
+            // Veri içindeki mahalle ve ilçe isimlerini yakalıyoruz
+            const mahalle = addr.neighbourhood || addr.suburb || addr.quarter || addr.residential || addr.city_district;
+            const ilce = addr.town || addr.county || addr.district;
+            const il = addr.province || addr.city || addr.state || "Antalya";
+if (mahalle && ilce) {
+               // EĞİTİM NOTU: Harita üzerindeki arama kutusunu bulup içine okunaklı adresi yazdırıyoruz
+                const mapSearchInput = document.querySelector('.leaflet-control input[type="text"]');
+                if (mapSearchInput) {
+                    // Eğer gelen isimde zaten "Mahalle" kelimesi varsa tekrar ekleme, yoksa ekle
+                    let duzeltilmisMahalle = mahalle.includes("Mahalle") ? mahalle : `${mahalle} Mahallesi`;
+                    mapSearchInput.value = `${duzeltilmisMahalle}, ${ilce}, ${il}`;
+                }
+
+                // Haritayı o bölgeye yumuşakça kaydır
+                map.flyTo([lat, lng], 15, { duration: 1.0 });
+                
+                // Kayma efekti bittikten 1 saniye sonra sizin mevcut "Sınır Çizme" fonksiyonunuzu otomatik çalıştırıyoruz!
+                setTimeout(() => {
+                    drawNeighborhoodBoundary(ilce, mahalle, il);
+                }, 1000);
+            } else {
+                alert("Bu noktanın resmi bir mahalle/ilçe kaydı bulunamadı. Harita üzerinde resmi olarak tanımlanmamış kırsal bir bölge olabilir.");
+            }
+        } else {
+            alert("Harita sunucusundan bu bölgeye ait bir yanıt alınamadı.");
+        }
+    } catch (error) {
+        console.error("Ters Kodlama Hatası:", error);
+        alert("Bağlantı hatası: Bölge bilgisi alınamadı.");
+    }
+
+    // Yükleniyor ekranını kapat
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
 }
 </script>
 </body>
