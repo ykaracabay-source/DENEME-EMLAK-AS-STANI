@@ -277,8 +277,9 @@
             .detailed-stats-container { grid-template-columns: 1fr; }
         }
 
-        /* YAZDIRMA AYARLARI */
+      /* YAZDIRMA AYARLARI */
         @media print { 
+            @page { size: landscape; margin: 10mm; }
             body, .container, #appContainer { background-color: white !important; margin: 0; padding: 0; }
             .input-panel, .filter-bar, .backup-controls, .tools-bar, .clock-container, .dashboard-stats, .detailed-stats-container, .no-print, .crm-action-bar, .crm-input-panel, .crm-header { display: none !important; } 
             .badge-own, .badge-shared { display: none !important; } 
@@ -530,6 +531,9 @@
         <div id="detailedStats" class="detailed-stats-container"></div>
 
        
+        <div id="printHintMsg" class="print-only" style="text-align: center; font-size: 14px; font-weight: bold; color: #c0392b; background-color: #fdf2e9; padding: 10px; margin-bottom: 15px; border: 2px dashed #e74c3c; border-radius: 8px;">
+            💡 İPUCU: Tablodaki "TKGM Parsel" ve "Harita Konumu" butonlarına dokunarak arazileri cihazınızdan canlı inceleyebilirsiniz.
+        </div>
         <table id="portfolioTable">
             <thead>
                 <tr>
@@ -1266,7 +1270,7 @@
         const extraReportDiv = document.getElementById('printExtraReport');
         extraReportDiv.innerHTML = ''; 
         
-        // YENİ: PDF Dosya ismini akıllı olarak belirleme
+        // GÜNCELLENDİ: Mahalle_Tür_Durum_m2 Formatında İsimlendirme
         let customDocTitle = "Ozel_Portfoy_Sunumu_" + selectedCount + "_Adet";
         if(selectedCount === 1) {
             const row = selectedCheckboxes[0].closest('tr');
@@ -1277,7 +1281,11 @@
                     const item = portfolio.find(p => p.id === parseInt(idMatch[0]));
                     if(item) {
                         let m2Text = item.net ? item.net + "m2" : (item.gross ? item.gross + "m2" : "");
-                        customDocTitle = `${item.status} ${item.type} - ${item.district} ${item.neighborhood} ${m2Text}`.trim().replace(/\s+/g, '_');
+                        let mahalleAd = item.neighborhood ? item.neighborhood.replace(/\s+/g, '_') : "MahalleYok";
+                        let turAd = item.type ? item.type.replace(/\s+/g, '_') : "TurYok";
+                        let durumAd = item.status ? item.status.replace(/\s+/g, '_') : "DurumYok";
+                        
+                        customDocTitle = `${mahalleAd}_${turAd}_${durumAd}_${m2Text}`;
                     }
                 }
             }
@@ -1319,7 +1327,7 @@
         }, 100); 
     }
     
-   function sendSelectedToWhatsapp() { 
+  function sendSelectedToWhatsapp() { 
         const selectedCheckboxes = document.querySelectorAll('#tableBody tr.row-selected input[type="checkbox"]'); 
         if(selectedCheckboxes.length === 0) { alert("Lütfen portföy seçin."); return; } 
         
@@ -1347,9 +1355,9 @@
                         if(oranInfo) line3 += oranInfo;
                         if(line3) msg += ">> " + line3 + "\n";
                         
-                        msg += ">> " + item.price + " " + (item.currency||'₺') + "\n";
+                        msg += ">> Fiyat: " + item.price + " " + (item.currency||'₺') + "\n";
                         
-                        // YENİ: WP MESAJINA TKGM VE HARİTA LİNKLERİNİ EKLEME
+                        // GÜNCELLENDİ: Evrensel Sembollerle Link Ekleme
                         if (item.link && item.link.trim() !== "") {
                             let mapLink = ""; let tkgmLink = "";
                             item.link.split('\n').forEach(l => {
@@ -1360,8 +1368,8 @@
                                     else if (r.includes("tkgm") || r.includes("parselsorgu")) tkgmLink = href;
                                 }
                             });
-                            if (mapLink) msg += "🗺️ Haritada Aç: " + mapLink + "\n";
-                            if (tkgmLink) msg += "👆 TKGM İncele: " + tkgmLink + "\n";
+                            if (mapLink) msg += "📍 HARİTADA AÇ: " + mapLink + "\n";
+                            if (tkgmLink) msg += "📄 TKGM İNCELE: " + tkgmLink + "\n";
                         }
 
                         if(includeProcess && item.process && item.process.trim() !== "") { msg += "\n>> İŞLEM / SÜREÇ GEÇMİŞİ:\n" + item.process + "\n"; }
