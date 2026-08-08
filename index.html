@@ -1451,26 +1451,39 @@ function showModal(title, text) { document.getElementById('descModalTitle').inne
             let authWarningStyle = ""; if (item.authEnd) { const endDate = new Date(item.authEnd); const diffDays = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)); if (diffDays < 0) authWarningStyle = "color: white; background: #c0392b; padding: 2px 5px; border-radius: 3px;"; else if (diffDays <= 7) authWarningStyle = "color: black; background: #f1c40f; padding: 2px 5px; border-radius: 3px;"; } let authHtml = item.authEnd ? `<span style="${authWarningStyle}">${item.authEnd}</span>` : '-'; 
             let btnLinkHtml = '-'; if (item.link && item.link.trim() !== "") { btnLinkHtml = ''; item.link.split('\n').forEach(l => { let r = l.trim(); if(r){ let lbl="Link"; let cls=""; let isF=false; let icon = "fa-link"; if(r.includes("maps") || r.includes("goo.gl")) { lbl="KONUM"; cls="link-maps"; icon="fa-location-dot"; } else if(r.includes("sahibinden")) {lbl="Sahibinden";cls="link-sahibinden";} else if(r.includes("hepsi")) {lbl="HepsiEmlak";cls="link-hepsi";} else if(r.includes("facebook")||r.includes("instagram")){lbl="Sosyal";cls="link-sosyal";} else if(r.includes("▸")||/\.(pdf|docx?|txt|jpg|png)$/i.test(r)){lbl="Dosya";cls="link-dosya";isF=true;} let href=r; if(!isF && !href.startsWith('http')) href='https://'+href; if(isF) btnLinkHtml += `<button onclick="alert('Dosya Yolu:\\n${r.replace(/\\/g,'\\\\')}')" class="direct-link-btn ${cls} no-print" style="border:none;cursor:pointer;">${lbl}</button><br>`; else btnLinkHtml += `<a href="${href}" target="_blank" class="direct-link-btn ${cls} no-print"><i class="fa-solid ${icon}"></i> ${lbl}</a><br>`; } }); } 
             
-           let typeBadgeHtml = `<span class="type-badge-yellow">${item.type}</span>`;
+         let typeBadgeHtml = `<span class="type-badge-yellow">${item.type}</span>`;
             
-            // YENİ: PDF İÇİN ÖZEL TKGM/HARİTA LİNK KUTUSU
-            let printLinkHtml = '';
+            // YENİ: PDF İÇİN AYRIŞTIRILMIŞ TKGM VE KONUM LİNKLERİ
+            let tkgmPrintLink = '';
+            let konumPrintLink = '';
+
             if (item.link && item.link.trim() !== "") {
-                let rawLink = item.link.split('\n')[0].trim(); // İlk satırdaki linki alır
-                if(!rawLink.startsWith('http')) rawLink = 'https://' + rawLink;
-                
-                printLinkHtml = `<div style="margin-top: 8px; padding: 6px; background-color: #fdf2e9; border-left: 4px solid #e67e22; border-radius: 4px; color: #2c3e50; font-size: 11px; word-break: break-all;">
-                    <span style="color:#d35400; font-weight: bold;">📍 TKGM / HARİTA LİNKİ:</span><br>
-                    <a href="${rawLink}" style="color: #2980b9; text-decoration: underline; font-size: 11px; font-weight: bold;">${rawLink}</a>
-                </div>`;
+                item.link.split('\n').forEach(l => {
+                    let r = l.trim();
+                    if (r) {
+                        let rawLink = r.startsWith('http') ? r : 'https://' + r;
+                        // TKGM bağlantısıysa "Tür" sütunu için hazırla
+                        if (r.includes("tkgm") || r.includes("parselsorgu")) {
+                            tkgmPrintLink += `<div class="print-only" style="margin-top: 6px; padding: 4px; background-color: #fdf2e9; border: 1px solid #fadbd8; border-radius: 3px; text-align: center;">
+                                <a href="${rawLink}" style="color: #c0392b; text-decoration: none; font-size: 10px; font-weight: bold;">📍 TKGM Parsel</a>
+                            </div>`;
+                        } 
+                        // Google Maps vb. konum bağlantısıysa "Lokasyon" sütunu için hazırla
+                        else if (r.includes("maps") || r.includes("goo.gl")) {
+                            konumPrintLink += `<div class="print-only" style="margin-top: 6px; padding: 4px; background-color: #eafaf1; border: 1px solid #abebc6; border-radius: 3px; text-align: center;">
+                                <a href="${rawLink}" style="color: #27ae60; text-decoration: none; font-size: 10px; font-weight: bold;">🌍 Harita Konumu</a>
+                            </div>`;
+                        }
+                    }
+                });
             }
-            
-            // mapWarning değişkeni neighborhood bilgisinin yanına eklendi (En sondaki td içine printLinkHtml eklendi)
-            tbody.innerHTML += ` <tr class="${rowClass}"> <td class="select-col-cell no-print"><input type="checkbox" onchange="toggleRowSelection(this)"></td> <td><span class="badge ${badgeClass}">${item.status}</span><br><span class="badge ${ownBadgeClass}">${ownLabel}</span><br>${typeBadgeHtml}</td> <td>${cityDisplay}<b>${item.district}</b><br><small>${item.neighborhood}</small>${mapWarning}</td> <td>${item.rooms}${floorInfo}</td> <td>${item.gross}/${item.net}</td> <td style="color:#27ae60;font-weight:bold;">${item.price} ${currSymbol}</td> <td>${item.ref}<br><small>${item.phone}</small></td> <td>${authHtml}</td> <td class="no-print">${btnLinkHtml}</td> <td class="no-print" style="white-space:nowrap;">${notesHtml}</td> <td class="no-print" style="white-space:nowrap;">
+
+            // GÜNCELLENDİ: tkgmPrintLink "Tür" sütununa, konumPrintLink "Lokasyon" sütununa eklendi
+            tbody.innerHTML += ` <tr class="${rowClass}"> <td class="select-col-cell no-print"><input type="checkbox" onchange="toggleRowSelection(this)"></td> <td><span class="badge ${badgeClass}">${item.status}</span><br><span class="badge ${ownBadgeClass}">${ownLabel}</span><br>${typeBadgeHtml}${tkgmPrintLink}</td> <td>${cityDisplay}<b>${item.district}</b><br><small>${item.neighborhood}</small>${mapWarning}${konumPrintLink}</td> <td>${item.rooms}${floorInfo}</td> <td>${item.gross}/${item.net}</td> <td style="color:#27ae60;font-weight:bold;">${item.price} ${currSymbol}</td> <td>${item.ref}<br><small>${item.phone}</small></td> <td>${authHtml}</td> <td class="no-print">${btnLinkHtml}</td> <td class="no-print" style="white-space:nowrap;">${notesHtml}</td> <td class="no-print" style="white-space:nowrap;">
     <button onclick="findMatches(${item.id})" style="background:#27ae60;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;margin-right:4px;" title="Alıcı Bul (Akıllı Eşleştir)"><i class="fa-solid fa-handshake"></i></button>
     <button onclick="haritadaBul(${item.id})" style="background:#8e44ad;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;margin-right:4px;" title="Haritada Bul"><i class="fa-solid fa-location-dot"></i></button>
     <button onclick="editRecord(${item.id})" style="background:#3498db;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
-</td> <td class="print-only">${item.desc}${printLinkHtml}</td> </tr>`;
+</td> <td class="print-only">${item.desc}</td> </tr>`;
         });
 
         // YENİ: Tablonun hemen altına sayfa numaralarını çiz!
