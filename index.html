@@ -1620,17 +1620,32 @@ if (typeof updateMapMarkers === 'function') updateMapMarkers();
     function sendCRMToWhatsapp() {
         const checkboxes = document.querySelectorAll('.crm-chk:checked');
         if(checkboxes.length === 0) { alert("Lütfen gönderilecek müşteri taleplerini seçin."); return; }
-        
+
         let msg = "*** [ALICI TALEBİ / YENİ MÜŞTERİ] ***\n\n";
         checkboxes.forEach(cb => {
-            const row = cb.closest('tr'); const tds = row.querySelectorAll('td');
-            const talepBolge = tds[3].innerText.split(' - '); const aranan = talepBolge[0] || ''; const bolge = talepBolge[1] || tds[3].innerText;
-            const butce = tds[4].innerText; const notlar = tds[5].innerText;
-            msg += ">> " + aranan + "\n>> " + bolge + "\n>> " + butce + "\n";
-            if(notlar && notlar !== '-') msg += ">> " + notlar + "\n";
-            msg += "-------------------\n\n";
+            const id = parseInt(cb.value);
+            const inv = crmData.investors.find(i => i.id === id);
+            if(inv) {
+                let bolgeText = "";
+                if (inv.city || inv.district) {
+                    bolgeText = `${inv.city || ''} / ${inv.district !== 'all' ? inv.district : ''}`;
+                } else { bolgeText = inv.region || ''; }
+                
+                let mahalleText = inv.neighborhoods ? ` (${inv.neighborhoods})` : '';
+                
+                let butceText = "";
+                if (inv.minBudget || inv.maxBudget) {
+                    butceText = `${inv.minBudget || '0'} - ${inv.maxBudget || 'Limit Yok'}`;
+                } else { butceText = inv.budget || '-'; }
+
+                msg += ">> Aranan: " + (inv.status ? inv.status + " " : "") + inv.type + "\n";
+                msg += ">> Bölge: " + bolgeText + mahalleText + "\n";
+                msg += ">> Bütçe: " + butceText + "\n";
+                if(inv.note && inv.note !== '-') msg += ">> Notlar: " + inv.note + "\n";
+                msg += "-------------------\n\n";
+            }
         });
-        
+
         msg += "Elinizde bu kriterlere uygun, güncel ve doğrudan yetkili olduğunuz portföyünüz varsa lütfen iletişime geçiniz. Sunum yapmaya hazırız.\n\n";
         if(userProfile.name && userProfile.nameChk !== false) msg += "-- *" + userProfile.name + "*\n";
         let crmTitleComp = [];
@@ -3356,15 +3371,34 @@ function renderMatchResults(matches, port) {
             <span style="color:#27ae60; font-weight:bold;">${matches.length} Potansiyel Alıcı Bulundu!</span>
         </div>`;
 
+        // GÜNCELLENDİ: TKGM ve Harita linklerini portföyden okuma
+        let mapLink = ""; let tkgmLink = "";
+        if (port.link && port.link.trim() !== "") {
+            port.link.split('\n').forEach(l => {
+                let r = l.trim();
+                if (r) {
+                    let href = r.startsWith('http') ? r : 'https://' + r;
+                    if (r.includes("maps") || r.includes("goo.gl")) mapLink = href;
+                    else if (r.includes("tkgm") || r.includes("parselsorgu")) tkgmLink = href;
+                }
+            });
+        }
+
         matches.forEach(inv => {
             let msg = `Merhaba ${inv.name},\n\nTam aradığınız kriterlere uygun yeni bir portföyümüz var!\n\n`;
-            msg += `📍 ${port.district} / ${port.neighborhood}\n`;
-            msg += `🏠 ${port.status} ${port.type} ${port.rooms ? '('+port.rooms+')' : ''}\n`;
-            msg += `💰 ${port.price} ${port.currency || '₺'}\n\n`;
+            msg += `>> ${port.district} / ${port.neighborhood}\n`;
+            msg += `>> ${port.status} ${port.type} ${port.rooms ? '('+port.rooms+')' : ''}\n`;
+            msg += `>> Fiyat: ${port.price} ${port.currency || '₺'}\n`;
+            if (mapLink) msg += `>> HARİTADA AÇ: ${mapLink}\n`;
+            if (tkgmLink) msg += `>> TKGM İNCELE: ${tkgmLink}\n\n`;
             msg += `Detaylı bilgi ve sunum için bana dönüş yapabilirsiniz.\n`;
             if(userProfile.name && userProfile.nameChk !== false) msg += `-- *${userProfile.name}*`;
 
-            const wpLink = `https://wa.me/90${inv.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+            // GÜNCELLENDİ: Mac WP Çökme Hatası Çözümü (Akıllı Link)
+            let cleanPhone = inv.phone ? inv.phone.replace(/\D/g, '') : '';
+            if (cleanPhone.length > 0 && cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+            let waBase = (cleanPhone.length >= 10) ? `https://wa.me/90${cleanPhone}` : `https://wa.me/`;
+            const wpLink = `${waBase}?text=${encodeURIComponent(msg)}`;
 
             container.innerHTML += `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #eee; background:#f9f9f9; margin-bottom:5px; border-radius:4px;">
@@ -3379,6 +3413,7 @@ function renderMatchResults(matches, port) {
     }
     openModal('matchModal');
 }
+
 // --- ALICIDAN PORTFÖYE EŞLEŞTİRME MOTORU ---
 function findPortfoliosForBuyer(investorId) {
     const inv = crmData.investors.find(i => i.id === investorId);
@@ -3437,7 +3472,6 @@ function renderPortfolioMatches(matches, inv) {
         if (inv.minBudget || inv.maxBudget) butceText = `${inv.minBudget || '0'} - ${inv.maxBudget || 'Limit Yok'} ₺`;
         else butceText = "Bütçe Belirtilmemiş";
 
-       // EĞİTİM NOTU: Eşleşen portföylerin sadece ID'lerini alıp aralarına virgül koyarak bir liste yapıyoruz.
         const matchIds = matches.map(m => m.id);
 
         container.innerHTML = `<div style="margin-bottom:15px; background:#e8f8f5; padding:10px; border-radius:4px; border:1px solid #3498db; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -3452,16 +3486,35 @@ function renderPortfolioMatches(matches, inv) {
             let m2Info = port.gross ? port.gross + ' m²' : ''; 
             if (port.net) m2Info += ' (Net: ' + port.net + ' m²)';
 
+            // GÜNCELLENDİ: TKGM ve Harita linklerini portföyden okuma
+            let mapLink = ""; let tkgmLink = "";
+            if (port.link && port.link.trim() !== "") {
+                port.link.split('\n').forEach(l => {
+                    let r = l.trim();
+                    if (r) {
+                        let href = r.startsWith('http') ? r : 'https://' + r;
+                        if (r.includes("maps") || r.includes("goo.gl")) mapLink = href;
+                        else if (r.includes("tkgm") || r.includes("parselsorgu")) tkgmLink = href;
+                    }
+                });
+            }
+
             let msg = `Merhaba ${inv.name},\n\nTam aradığınız kriterlere uygun harika bir portföyümüz var!\n\n`;
-            msg += `📍 ${port.district} / ${port.neighborhood}\n`;
-            msg += `🏠 ${port.status} ${port.type} ${port.rooms ? '('+port.rooms+')' : ''}\n`;
-            if(m2Info) msg += `📏 ${m2Info}\n`;
-            msg += `💰 ${port.price} ${port.currency || '₺'}\n\n`;
+            msg += `>> ${port.district} / ${port.neighborhood}\n`;
+            msg += `>> ${port.status} ${port.type} ${port.rooms ? '('+port.rooms+')' : ''}\n`;
+            if(m2Info) msg += `>> ${m2Info}\n`;
+            msg += `>> Fiyat: ${port.price} ${port.currency || '₺'}\n`;
+            if (mapLink) msg += `>> HARİTADA AÇ: ${mapLink}\n`;
+            if (tkgmLink) msg += `>> TKGM İNCELE: ${tkgmLink}\n\n`;
             msg += `Detaylı bilgi, fotoğraflar ve yer gösterimi için bana dönüş yapabilirsiniz.\n`;
             
             if(userProfile.name && userProfile.nameChk !== false) msg += `-- *${userProfile.name}*`;
 
-            const wpLink = `https://wa.me/90${inv.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+            // GÜNCELLENDİ: Mac WP Çökme Hatası Çözümü (Akıllı Link)
+            let cleanPhone = inv.phone ? inv.phone.replace(/\D/g, '') : '';
+            if (cleanPhone.length > 0 && cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+            let waBase = (cleanPhone.length >= 10) ? `https://wa.me/90${cleanPhone}` : `https://wa.me/`;
+            const wpLink = `${waBase}?text=${encodeURIComponent(msg)}`;
 
             container.innerHTML += `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #eee; background:#fdfdfd; margin-bottom:5px; border-radius:4px; border-left:3px solid #3498db;">
@@ -3471,7 +3524,8 @@ function renderPortfolioMatches(matches, inv) {
                     <b style="color:#27ae60; font-size:13px;">${port.price} ${port.currency || '₺'}</b>
                 </div>
                 <div style="display:flex; gap:5px;">
-                    <button onclick="closeModal('matchModal'); closeModal('crmModal'); scrollToRow(${port.id});" style="background:#34495e; color:white; padding:6px 10px; border-radius:4px; border:none; cursor:pointer; font-size:12px;" title="Ana Listede Bul"><i class="fa-solid fa-eye"></i></button>
+                    <!-- GÜNCELLENDİ: Göz ikonuna basınca A seçeneği (Tekil Filtreleme) devreye girer -->
+                    <button onclick="filterMainTableByMatches([${port.id}])" style="background:#34495e; color:white; padding:6px 10px; border-radius:4px; border:none; cursor:pointer; font-size:12px;" title="Ana Listede Bul (İzole Et)"><i class="fa-solid fa-eye"></i></button>
                     <a href="${wpLink}" target="_blank" style="background:#25D366; color:white; padding:6px 10px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:12px; display:inline-block;" title="Müşteriye Gönder"><i class="fa-brands fa-whatsapp"></i> Gönder</a>
                 </div>
             </div>`;
