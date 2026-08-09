@@ -534,6 +534,9 @@
         <div id="printHintMsg" class="print-only" style="text-align: center; font-size: 14px; font-weight: bold; color: #c0392b; background-color: #fdf2e9; padding: 10px; margin-bottom: 15px; border: 2px dashed #e74c3c; border-radius: 8px;">
             💡 İPUCU: Tablodaki "TKGM Parsel" ve "Harita Konumu" butonlarına dokunarak arazileri cihazınızdan canlı inceleyebilirsiniz.
         </div>
+       <div id="printHintMsg" class="print-only" style="text-align: center; font-size: 14px; font-weight: bold; color: #c0392b; background-color: #fdf2e9; padding: 10px; margin-bottom: 15px; border: 2px dashed #e74c3c; border-radius: 8px;">
+            💡 İPUCU: Tablodaki "TKGM TIKLA" ve "Haritada Aç" bağlantılarına tıklayarak arazileri cihazınızdan canlı inceleyebilirsiniz.
+        </div>
         <table id="portfolioTable">
             <thead>
                 <tr>
@@ -1261,7 +1264,7 @@
     function toggleAllSelections(source) { const checkboxes = document.querySelectorAll('#tableBody input[type="checkbox"]'); checkboxes.forEach(cb => { cb.checked = source.checked; toggleRowSelection(cb); }); }
     function toggleRowSelection(checkbox) { const row = checkbox.closest('tr'); if(checkbox.checked) row.classList.add('row-selected'); else row.classList.remove('row-selected'); }
     
-  function printSelected() { 
+ function printSelected() { 
         const selectedCheckboxes = document.querySelectorAll('#tableBody tr.row-selected input[type="checkbox"]');
         const selectedCount = selectedCheckboxes.length; 
         if(selectedCount === 0) { alert("⚠️ Yazdırılacak kayıt seçiniz."); return; } 
@@ -1327,7 +1330,7 @@
         }, 100); 
     }
     
-  function sendSelectedToWhatsapp() { 
+ function sendSelectedToWhatsapp() { 
         const selectedCheckboxes = document.querySelectorAll('#tableBody tr.row-selected input[type="checkbox"]'); 
         if(selectedCheckboxes.length === 0) { alert("Lütfen portföy seçin."); return; } 
         
@@ -1357,7 +1360,7 @@
                         
                         msg += ">> Fiyat: " + item.price + " " + (item.currency||'₺') + "\n";
                         
-                        // GÜNCELLENDİ: Evrensel Sembollerle Link Ekleme
+                        // GÜNCELLENDİ: Kodlama Hatasına Karşı Saf Metin Sembolleri
                         if (item.link && item.link.trim() !== "") {
                             let mapLink = ""; let tkgmLink = "";
                             item.link.split('\n').forEach(l => {
@@ -1368,8 +1371,8 @@
                                     else if (r.includes("tkgm") || r.includes("parselsorgu")) tkgmLink = href;
                                 }
                             });
-                            if (mapLink) msg += "📍 HARİTADA AÇ: " + mapLink + "\n";
-                            if (tkgmLink) msg += "📄 TKGM İNCELE: " + tkgmLink + "\n";
+                            if (mapLink) msg += ">> HARİTADA AÇ: " + mapLink + "\n";
+                            if (tkgmLink) msg += ">> TKGM İNCELE: " + tkgmLink + "\n";
                         }
 
                         if(includeProcess && item.process && item.process.trim() !== "") { msg += "\n>> İŞLEM / SÜREÇ GEÇMİŞİ:\n" + item.process + "\n"; }
@@ -1503,9 +1506,9 @@ function showModal(title, text) { document.getElementById('descModalTitle').inne
             let authWarningStyle = ""; if (item.authEnd) { const endDate = new Date(item.authEnd); const diffDays = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)); if (diffDays < 0) authWarningStyle = "color: white; background: #c0392b; padding: 2px 5px; border-radius: 3px;"; else if (diffDays <= 7) authWarningStyle = "color: black; background: #f1c40f; padding: 2px 5px; border-radius: 3px;"; } let authHtml = item.authEnd ? `<span style="${authWarningStyle}">${item.authEnd}</span>` : '-'; 
             let btnLinkHtml = '-'; if (item.link && item.link.trim() !== "") { btnLinkHtml = ''; item.link.split('\n').forEach(l => { let r = l.trim(); if(r){ let lbl="Link"; let cls=""; let isF=false; let icon = "fa-link"; if(r.includes("maps") || r.includes("goo.gl")) { lbl="KONUM"; cls="link-maps"; icon="fa-location-dot"; } else if(r.includes("sahibinden")) {lbl="Sahibinden";cls="link-sahibinden";} else if(r.includes("hepsi")) {lbl="HepsiEmlak";cls="link-hepsi";} else if(r.includes("facebook")||r.includes("instagram")){lbl="Sosyal";cls="link-sosyal";} else if(r.includes("▸")||/\.(pdf|docx?|txt|jpg|png)$/i.test(r)){lbl="Dosya";cls="link-dosya";isF=true;} let href=r; if(!isF && !href.startsWith('http')) href='https://'+href; if(isF) btnLinkHtml += `<button onclick="alert('Dosya Yolu:\\n${r.replace(/\\/g,'\\\\')}')" class="direct-link-btn ${cls} no-print" style="border:none;cursor:pointer;">${lbl}</button><br>`; else btnLinkHtml += `<a href="${href}" target="_blank" class="direct-link-btn ${cls} no-print"><i class="fa-solid ${icon}"></i> ${lbl}</a><br>`; } }); } 
             
-        let typeBadgeHtml = `<span class="type-badge-yellow">${item.type}</span>`;
+     let typeBadgeHtml = `<span class="type-badge-yellow">${item.type}</span>`;
             
-            // YENİ: PDF İÇİN AYRIŞTIRILMIŞ TKGM VE KONUM LİNKLERİ (BUTON GÖRÜNÜMÜ GÜÇLENDİRİLDİ)
+            // YENİ: PDF İÇİN AYRIŞTIRILMIŞ TKGM VE KONUM LİNKLERİ (SADELEŞTİRİLMİŞ, MASAÜSTÜ UYUMLU)
             let tkgmPrintLink = '';
             let konumPrintLink = '';
 
@@ -1516,14 +1519,14 @@ function showModal(title, text) { document.getElementById('descModalTitle').inne
                         let rawLink = r.startsWith('http') ? r : 'https://' + r;
                         // TKGM bağlantısıysa "Tür" sütunu için hazırla
                         if (r.includes("tkgm") || r.includes("parselsorgu")) {
-                            tkgmPrintLink += `<div class="print-only" style="margin-top: 8px; padding: 6px; background-color: #fdf2e9; border: 1px solid #e74c3c; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
-                                <a href="${rawLink}" style="color: #c0392b; text-decoration: none; font-size: 10px; font-weight: 900; display: block;">👆 TKGM TIKLA</a>
+                            tkgmPrintLink += `<div class="print-only" style="margin-top: 8px; text-align: center;">
+                                <a href="${rawLink}" style="color: #c0392b; text-decoration: underline; font-size: 11px; font-weight: bold; display: block; border: 1px solid #c0392b; padding: 4px; border-radius: 4px; background-color: transparent;">👆 TKGM TIKLA</a>
                             </div>`;
                         } 
                         // Google Maps vb. konum bağlantısıysa "Lokasyon" sütunu için hazırla
                         else if (r.includes("maps") || r.includes("goo.gl")) {
-                            konumPrintLink += `<div class="print-only" style="margin-top: 8px; padding: 6px; background-color: #eafaf1; border: 1px solid #27ae60; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
-                                <a href="${rawLink}" style="color: #27ae60; text-decoration: none; font-size: 10px; font-weight: 900; display: block;">🗺️ Haritada Aç (Tıkla)</a>
+                            konumPrintLink += `<div class="print-only" style="margin-top: 8px; text-align: center;">
+                                <a href="${rawLink}" style="color: #27ae60; text-decoration: underline; font-size: 11px; font-weight: bold; display: block; border: 1px solid #27ae60; padding: 4px; border-radius: 4px; background-color: transparent;">🗺️ Haritada Aç</a>
                             </div>`;
                         }
                     }
